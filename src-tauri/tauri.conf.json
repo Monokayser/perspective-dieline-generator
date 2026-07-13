@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Perspective Dieline Generator",
+  "version": "1.0.0",
+  "identifier": "com.perspectivedieline.generator",
+  "build": {
+    "beforeDevCommand": "npm run desktop:serve",
+    "beforeBuildCommand": "npm run desktop:web",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../desktop-dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Perspective Dieline Generator",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 720,
+        "minHeight": 560,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' asset: http://asset.localhost; img-src 'self' asset: http://asset.localhost blob: data:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "category": "Productivity",
+    "shortDescription": "Package image to editable 2D dieline",
+    "longDescription": "Local-first computer-vision assisted package measurement and 1:1 vector dieline workspace.",
+    "copyright": "Copyright 2026 Perspective Dieline Generator",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "fileAssociations": [
+      {
+        "ext": ["pdgproj"],
+        "name": "Perspective Dieline Project",
+        "description": "Perspective Dieline Generator project"
+      }
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "offlineInstaller", "silent": true },
+      "nsis": {
+        "installerMode": "currentUser",
+        "displayLanguageSelector": false,
+        "compression": "lzma"
+      }
+    }
+  }
+}

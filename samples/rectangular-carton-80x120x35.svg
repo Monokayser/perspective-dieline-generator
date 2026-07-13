@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="268mm" height="190mm" viewBox="0 0 268 190">
+  <title>Synthetic rectangular carton 80 × 120 × 35 mm</title>
+  <g id="artboard"><rect x="0" y="0" width="268" height="190" fill="none" stroke="#94a3b8" stroke-width="0.12"/></g>
+  <g id="cut-lines"><path d="M3 40 L19 35 L19 3 L259 3 L259 187 L19 187 L19 155 L3 150 Z" fill="none" stroke="#111" stroke-width="0.25"/></g>
+  <g id="crease-lines" fill="none" stroke="#246bfd" stroke-width="0.22" stroke-dasharray="4 2"><path d="M19 35V155M54 35V155M134 35V155M169 35V155M249 35V155"/><path d="M19 35H259M19 155H259"/></g>
+  <g id="perforation-lines"/>
+  <g id="glue-flaps"><path d="M3 40L19 35V155L3 150Z" fill="none"/></g>
+  <g id="bleed-area"><rect x="0" y="0" width="268" height="190" fill="none" stroke="#db2777" stroke-dasharray="6 2 1 2" stroke-width="0.18"/></g>
+  <g id="safe-area"><rect x="58" y="39" width="72" height="112" fill="none" stroke="#16a34a" stroke-dasharray="2 2" stroke-width="0.18"/></g>
+  <g id="measurements"/>
+  <g id="labels"><text x="94" y="96" text-anchor="middle" font-family="Arial" font-size="4">Front panel</text></g>
+  <g id="guides"/>
+</svg>

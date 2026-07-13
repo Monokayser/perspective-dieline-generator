@@ -1,0 +1,10 @@
+{
+  "analysisVersion": "1.0.0",
+  "coordinateSpace": "normalized-image",
+  "corners": [
+    { "id": "corner-1", "x": 0.22, "y": 0.18, "confidence": 0.91 },
+    { "id": "corner-2", "x": 0.81, "y": 0.25, "confidence": 0.88 },
+    { "id": "corner-3", "x": 0.76, "y": 0.86, "confidence": 0.84 },
+    { "id": "corner-4", "x": 0.18, "y": 0.78, "confidence": 0.86 }
+  ]
+}

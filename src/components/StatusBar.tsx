@@ -1,0 +1,25 @@
+"use client";
+
+import { CheckCircle2, CircleDashed, Cpu, MousePointer2, Ruler, WifiOff } from "lucide-react";
+import { confidenceLabel } from "../domain/types";
+import { formatMeasurement } from "../domain/units";
+import { validationSummary } from "../domain/validation";
+import { useProjectStore } from "../store/project-store";
+
+export function StatusBar() {
+  const { unit, zoom, selectedTool, selectedObjectId, analysis, dimensions, validationIssues, dieline } = useProjectStore();
+  const summary = validationSummary(validationIssues);
+  return (
+    <footer className="statusbar">
+      <span><Ruler size={13} /> {unit} · scale 1:1</span>
+      <span><MousePointer2 size={13} /> {selectedTool}{selectedObjectId ? ` · ${selectedObjectId}` : ""}</span>
+      <span>{formatMeasurement(dimensions.width.valueMm, unit, 1)} × {formatMeasurement(dimensions.height.valueMm, unit, 1)} × {formatMeasurement(dimensions.depth.valueMm, unit, 1)}</span>
+      <span className="status-spacer" />
+      <span><Cpu size={13} /> {analysis ? `${confidenceLabel(analysis.confidence)} confidence` : "analysis idle"}</span>
+      <span className={summary.errors > 0 ? "status-error" : "status-good"}>{dieline && summary.errors === 0 ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />} {dieline ? `${summary.errors} errors · ${summary.warnings} warnings` : "not validated"}</span>
+      <span><WifiOff size={13} /> offline ready</span>
+      <span>{Math.round(zoom * 100)}%</span>
+    </footer>
+  );
+}
+
