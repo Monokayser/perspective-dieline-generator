@@ -48,6 +48,10 @@ $zipPath = Join-Path $release $zipName
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 Compress-Archive -Path (Join-Path $portable "*") -DestinationPath $zipPath -CompressionLevel Optimal
 
+$sampleZip = Join-Path $release "Perspective-Dieline-Generator-Sample-Pack-v$Version.zip"
+if (Test-Path -LiteralPath $sampleZip) { Remove-Item -LiteralPath $sampleZip -Force }
+Compress-Archive -Path (Join-Path $root "samples\*"), (Join-Path $root "docs\USER_GUIDE.md"), (Join-Path $root "docs\CALIBRATION_GUIDE.md"), (Join-Path $root "docs\TEMPLATES.md") -DestinationPath $sampleZip -CompressionLevel Optimal
+
 $artifacts = Get-ChildItem -LiteralPath $release -File | Where-Object Extension -In ".exe", ".zip"
 $checksums = foreach ($artifact in $artifacts) {
   $hash = Get-FileHash -LiteralPath $artifact.FullName -Algorithm SHA256
