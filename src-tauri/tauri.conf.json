@@ -26,6 +26,13 @@
       "csp": "default-src 'self' asset: http://asset.localhost; img-src 'self' asset: http://asset.localhost blob: data:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY5MzYwRDcwOThGMzg5OEUKUldTT2lmT1ljQTAyYVdEd1JPQlM0MWdCeUtXYnlqNlZlYzBhOEVVQVQybjdJRWlpSTBtd3piaVMK",
+      "endpoints": ["https://perspective-dieline-generator.circleofexpose.chatgpt.site/updates/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
@@ -44,7 +51,7 @@
     "windows": {
       "webviewInstallMode": { "type": "offlineInstaller", "silent": true },
       "nsis": {
-        "installerMode": "currentUser",
+        "installMode": "currentUser",
         "displayLanguageSelector": false,
         "compression": "lzma"
       }

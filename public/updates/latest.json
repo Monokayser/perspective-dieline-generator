@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "notes": "Initial local-first Perspective Dieline Generator release.",
+  "pub_date": "2026-07-13T19:58:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTT2lmT1ljQTAyYVYvWE5PRVBwOUFQTXBCd1pnREdsVXRtS3UvejZJeTF6dXp4bzhRVElINklmblFxc2swOTI0ODVva240clBBQWZiQXF0R3hYWGRjWDlpQ1MrTmUzUFFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzOTcyNzY5CWZpbGU6UGVyc3BlY3RpdmUgRGllbGluZSBHZW5lcmF0b3JfMS4wLjBfeDY0LXNldHVwLmV4ZQoxNTM0Y09LRGNFdDlKRXJUVTFQTFlTSjh5bE96cXpGNHpzUlRrZ0JHcmU2RktWYmhnQmJWTnZockVpWmNVSG5tVHMzRmt1cEpvUkNvcE1qeUVER3JDUT09Cg==",
+      "url": "https://perspective-dieline-generator.circleofexpose.chatgpt.site/updates/Perspective-Dieline-Generator-Setup-v1.0.0.exe"
+    }
+  }
+}

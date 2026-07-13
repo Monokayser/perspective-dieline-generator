@@ -18,7 +18,7 @@
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
     "release:windows": "powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern desktop-dist --ignore-pattern src-tauri/target --ignore-pattern release --ignore-pattern work",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

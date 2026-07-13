@@ -15,6 +15,10 @@ $setupSource = Get-ChildItem -LiteralPath $bundle -Filter "*.exe" | Sort-Object 
 if (-not $setupSource) { throw "No NSIS setup executable was produced." }
 $setupName = "Perspective-Dieline-Generator-Setup-v$Version.exe"
 Copy-Item -LiteralPath $setupSource.FullName -Destination (Join-Path $release $setupName) -Force
+$setupSignature = "$($setupSource.FullName).sig"
+if (Test-Path -LiteralPath $setupSignature) {
+  Copy-Item -LiteralPath $setupSignature -Destination (Join-Path $release "$setupName.sig") -Force
+}
 
 $appExe = Join-Path $target "perspective-dieline-generator.exe"
 if (-not (Test-Path -LiteralPath $appExe)) { throw "The desktop executable is missing." }
@@ -22,6 +26,10 @@ Copy-Item -LiteralPath $appExe -Destination (Join-Path $portable "Perspective-Di
 
 $webViewInstaller = Get-ChildItem -LiteralPath (Join-Path $target "bundle") -Recurse -File -ErrorAction SilentlyContinue |
   Where-Object { $_.Name -match "WebView2|MicrosoftEdge" } | Select-Object -First 1
+if (-not $webViewInstaller) {
+  $webViewInstaller = Get-ChildItem -LiteralPath (Join-Path $env:LOCALAPPDATA "tauri") -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -eq "MicrosoftEdgeWebView2RuntimeInstallerX64.exe" } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+}
 if ($webViewInstaller) { Copy-Item -LiteralPath $webViewInstaller.FullName -Destination $portable -Force }
 
 Copy-Item -LiteralPath (Join-Path $root "README.md") -Destination $portable -Force

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CircleHelp, CloudOff, FilePlus2, FolderOpen, Moon, Redo2, Save, Sun, Undo2 } from "lucide-react";
+import { CircleHelp, CloudOff, FilePlus2, FolderOpen, Moon, Redo2, RefreshCw, Save, Sun, Undo2 } from "lucide-react";
 import { createProjectArchive, openProjectArchive } from "../domain/project";
 import { downloadBlob } from "../domain/exporters";
 import { useProjectStore } from "../store/project-store";
@@ -11,6 +11,7 @@ const safeFilename = (value: string) => value.trim().replace(/[^a-z0-9_-]+/gi, "
 export function TopBar() {
   const openInput = useRef<HTMLInputElement | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const {
     projectName,
     theme,
@@ -40,6 +41,30 @@ export function TopBar() {
     }
   };
 
+  const checkForUpdates = async () => {
+    if (!("__TAURI_INTERNALS__" in window)) {
+      window.alert("Desktop update checks are available in the installed Windows app.");
+      return;
+    }
+    setCheckingUpdate(true);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (!update) {
+        window.alert("Perspective Dieline Generator is up to date.");
+        return;
+      }
+      if (window.confirm(`Version ${update.version} is available. Download and install it now?`)) {
+        await update.downloadAndInstall();
+        window.alert("The update is installed. Restart the application to finish updating.");
+      }
+    } catch (error) {
+      window.alert(error instanceof Error ? `Update check failed: ${error.message}` : "Update check failed. Offline use is unaffected.");
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
   return (
     <>
       <header className="topbar">
@@ -60,6 +85,7 @@ export function TopBar() {
           <button title="Redo (Ctrl+Y)" disabled={future.length === 0} onClick={redo}><Redo2 size={17} /></button>
           <span className="topbar-divider" />
           <button title="Help and shortcuts" onClick={() => setHelpOpen(true)}><CircleHelp size={17} /></button>
+          <button title="Check for desktop updates" disabled={checkingUpdate} onClick={() => void checkForUpdates()}><RefreshCw className={checkingUpdate ? "spin" : ""} size={17} /></button>
           <button title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}</button>
           <div className="local-status" title="Images are processed locally"><CloudOff size={14} /><span>Local</span></div>
         </nav>
@@ -83,4 +109,3 @@ export function TopBar() {
     </>
   );
 }
-
