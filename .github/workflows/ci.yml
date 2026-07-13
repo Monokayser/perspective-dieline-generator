@@ -1,0 +1,45 @@
+name: Release gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run audit:release
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run test:coverage
+      - run: npm run test:site
+      - run: npm run desktop:web
+
+  windows-bundle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run desktop:build
+      - name: Verify icon and package output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path src-tauri/icons/icon.ico)) { throw "Windows icon is missing." }
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object -First 1
+          if (-not $setup) { throw "NSIS installer was not produced." }

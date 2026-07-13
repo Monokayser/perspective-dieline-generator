@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible application problem without private artwork.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not attach confidential package artwork or security vulnerabilities. Use a synthetic fixture and private vulnerability reporting where appropriate.
+  - type: input
+    id: version
+    attributes:
+      label: Version and platform
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Application surface
+      options: [Web, Windows desktop]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true

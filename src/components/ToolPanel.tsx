@@ -32,7 +32,7 @@ const readableKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./
 
 const toolButtons = ["Select", "Corner", "Edge", "Face", "Calibration", "Guide"];
 
-export function ToolPanel() {
+export function ToolPanel({ inert = false }: { inert?: boolean }) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -59,6 +59,11 @@ export function ToolPanel() {
     confirmDimensions,
     approveFace,
     generate,
+    showNotice,
+    beginOperation,
+    updateOperation,
+    completeOperation,
+    failOperation,
   } = useProjectStore();
 
   const loadFile = async (file: File) => {
@@ -71,20 +76,29 @@ export function ToolPanel() {
       setFileError("The image is larger than the 25 MiB safety limit.");
       return;
     }
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const pixels = bitmap.width * bitmap.height;
-    bitmap.close();
-    if (pixels > 50_000_000) {
-      setFileError("The decoded image exceeds 50 megapixels. Resize it before uploading.");
-      return;
+    const operationId = beginOperation("image-load", "Loading source image", "Reading image file", file.name);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error ?? new Error("The image file could not be read."));
+        reader.readAsDataURL(file);
+      });
+      updateOperation(operationId, { phase: "processing", progress: 0.55, status: "Decoding image dimensions" });
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const pixels = bitmap.width * bitmap.height;
+      bitmap.close();
+      if (pixels > 50_000_000) throw new Error("The decoded image exceeds 50 megapixels. Resize it before uploading.");
+      updateOperation(operationId, { phase: "processing", progress: 0.85, status: "Preparing local workspace" });
+      setImage(dataUrl, file.name, file.type);
+      completeOperation(operationId, "Source image ready");
+      showNotice("success", `${file.name} loaded. The original remains on this device.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The image could not be loaded.";
+      setFileError(message);
+      failOperation(operationId, message);
+      showNotice("error", message);
     }
-    setImage(dataUrl, file.name, file.type);
   };
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -102,7 +116,7 @@ export function ToolPanel() {
   const measurementKeys = getTemplate(templateId).required.filter((key) => !["materialThickness", "foldAllowance"].includes(key));
 
   return (
-    <aside className="tool-panel" aria-label="Workflow tools">
+    <aside id="workflow-tools-panel" className="tool-panel" aria-label="Workflow tools" inert={inert || undefined}>
       <section className="panel-section upload-section">
         <div className="section-heading"><span><ImagePlus size={16} /> Source image</span><span className="section-step">01</span></div>
         {!imageDataUrl ? (
@@ -116,12 +130,12 @@ export function ToolPanel() {
               onClick={() => fileInput.current?.click()}
               role="button"
               tabIndex={0}
-              onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") fileInput.current?.click(); }}
+              onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileInput.current?.click(); } }}
             >
               <div className="dropzone-icon"><ImagePlus size={23} /></div>
               <strong>Drop package image</strong>
               <span>JPG, PNG or WEBP · 25 MiB max</span>
-              <button type="button" className="secondary-button">Browse files</button>
+              <span className="secondary-button dropzone-browse" aria-hidden="true">Browse files</span>
             </div>
             <input ref={fileInput} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void loadFile(file); }} />
             <button className="sample-button" onClick={loadSample}><Sparkles size={15} /> Load guided sample project</button>

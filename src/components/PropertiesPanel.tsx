@@ -17,6 +17,7 @@ import {
   Layers3,
   Lock,
   LockOpen,
+  LoaderCircle,
   Move,
   RotateCw,
   Settings2,
@@ -25,16 +26,11 @@ import {
 } from "lucide-react";
 import {
   DEFAULT_SVG_OPTIONS,
-  downloadBlob,
-  downloadText,
-  exportDxf,
-  exportMinimalVectorPdf,
-  exportRasterPreview,
-  exportSvg,
   type SvgExportOptions,
 } from "../domain/exporters";
-import { createProjectArchive } from "../domain/project";
-import type { EdgeKind, ValidationSeverity } from "../domain/types";
+import { runExport } from "../domain/export-job";
+import type { EdgeKind, ExportFormat, ValidationSeverity } from "../domain/types";
+import { safeFilename } from "../lib/files";
 import { validationSummary } from "../domain/validation";
 import { useProjectStore } from "../store/project-store";
 
@@ -47,12 +43,9 @@ const iconForSeverity = (severity: ValidationSeverity) => {
   return <CheckCircle2 size={15} />;
 };
 
-const safeFilename = (value: string) => value.trim().replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "dieline";
-
-export function PropertiesPanel() {
+export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
   const [tab, setTab] = useState<Tab>("properties");
   const [svgOptions, setSvgOptions] = useState<SvgExportOptions>({ ...DEFAULT_SVG_OPTIONS });
-  const [exporting, setExporting] = useState<string | null>(null);
   const {
     projectName,
     imageDataUrl,
@@ -61,6 +54,8 @@ export function PropertiesPanel() {
     selectedObjectId,
     selectedTool,
     unit,
+    operation,
+    readOnly,
     toDocument,
     toggleLayer,
     selectObject,
@@ -71,6 +66,11 @@ export function PropertiesPanel() {
     setSelectedPathKind,
     validate,
     setStage,
+    showNotice,
+    beginOperation,
+    updateOperation,
+    completeOperation,
+    failOperation,
   } = useProjectStore();
 
   const selectedPanel = dieline?.panels.find((panel) => panel.id === selectedObjectId);
@@ -78,34 +78,53 @@ export function PropertiesPanel() {
   const selected = selectedPanel ?? selectedPath;
   const summary = validationSummary(validationIssues);
   const filename = safeFilename(projectName);
+  const exportBusy = operation?.kind === "export" && !["complete", "error", "cancelled"].includes(operation.phase);
 
-  const performExport = async (kind: string) => {
-    if (!dieline && kind !== "project") return;
-    setExporting(kind);
+  const performExport = async (format: ExportFormat) => {
+    if (readOnly) {
+      showNotice("warning", "This newer project is open read-only and cannot be exported or overwritten.");
+      return;
+    }
+    const extension = format === "project" ? "pdgproj" : format;
+    const exportFilename = `${filename}${format === "png" || format === "jpg" ? "-preview" : ""}.${extension}`;
+    const operationId = beginOperation("export", `Exporting ${format.toUpperCase()}`, "Preparing export", exportFilename);
     try {
-      if (kind === "svg" && dieline) downloadText(exportSvg(dieline, { ...svgOptions, unit }), `${filename}.svg`, "image/svg+xml");
-      if (kind === "dxf" && dieline) downloadText(exportDxf(dieline), `${filename}.dxf`, "application/dxf");
-      if (kind === "pdf" && dieline) downloadBlob(exportMinimalVectorPdf(dieline), `${filename}.pdf`);
-      if (kind === "png" && dieline) downloadBlob(await exportRasterPreview(dieline, "png"), `${filename}-preview.png`);
-      if (kind === "jpg" && dieline) downloadBlob(await exportRasterPreview(dieline, "jpeg"), `${filename}-preview.jpg`);
-      if (kind === "json") downloadText(JSON.stringify(toDocument(), null, 2), `${filename}.json`, "application/json");
-      if (kind === "project") downloadBlob(createProjectArchive(toDocument(), imageDataUrl ?? undefined), `${filename}.pdgproj`);
+      if (format !== "project") {
+        const issues = validate();
+        if (issues.some((issue) => issue.severity === "error")) throw new Error("Resolve the blocking validation errors before exporting production files.");
+      }
+      const result = await runExport({
+        request: { format, filename: exportFilename, svgOptions: { ...svgOptions, unit } },
+        model: dieline,
+        document: toDocument(),
+        sourceImageDataUrl: imageDataUrl ?? undefined,
+        onProgress: (progress) => updateOperation(operationId, progress),
+      });
+      if (!result) {
+        updateOperation(operationId, { phase: "cancelled", status: "Save cancelled" });
+        showNotice("info", "Export cancelled. No file was written.");
+        return;
+      }
+      completeOperation(operationId, `${result.filename} saved successfully`);
+      showNotice("success", `${result.filename} exported successfully.`);
       setStage(7);
-    } finally {
-      setExporting(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The export could not be completed.";
+      failOperation(operationId, message);
+      showNotice("error", message);
     }
   };
 
   return (
-    <aside className="properties-panel" aria-label="Properties, layers, validation, and export">
-      <div className="properties-tabs" role="tablist">
-        <button className={tab === "properties" ? "active" : ""} onClick={() => setTab("properties")} title="Properties"><Settings2 size={16} /><span>Properties</span></button>
-        <button className={tab === "layers" ? "active" : ""} onClick={() => setTab("layers")} title="Layers"><Layers3 size={16} /><span>Layers</span></button>
-        <button className={tab === "validate" ? "active" : ""} onClick={() => setTab("validate")} title="Validation"><ShieldCheck size={16} /><span>Validate</span>{summary.errors > 0 && <b>{summary.errors}</b>}</button>
-        <button className={tab === "export" ? "active" : ""} onClick={() => setTab("export")} title="Export"><Download size={16} /><span>Export</span></button>
+    <aside id="properties-panel" className="properties-panel" aria-label="Properties, layers, validation, and export" inert={inert || undefined}>
+      <div className="properties-tabs" role="tablist" aria-label="Inspector views">
+        <button id="inspector-tab-properties" role="tab" aria-selected={tab === "properties"} aria-controls="inspector-panel" className={tab === "properties" ? "active" : ""} onClick={() => setTab("properties")} title="Properties"><Settings2 size={16} /><span>Properties</span></button>
+        <button id="inspector-tab-layers" role="tab" aria-selected={tab === "layers"} aria-controls="inspector-panel" className={tab === "layers" ? "active" : ""} onClick={() => setTab("layers")} title="Layers"><Layers3 size={16} /><span>Layers</span></button>
+        <button id="inspector-tab-validate" role="tab" aria-selected={tab === "validate"} aria-controls="inspector-panel" className={tab === "validate" ? "active" : ""} onClick={() => setTab("validate")} title="Validation"><ShieldCheck size={16} /><span>Validate</span>{summary.errors > 0 && <b>{summary.errors}</b>}</button>
+        <button id="inspector-tab-export" role="tab" aria-selected={tab === "export"} aria-controls="inspector-panel" className={tab === "export" ? "active" : ""} onClick={() => setTab("export")} title="Export"><Download size={16} /><span>Export</span></button>
       </div>
 
-      <div className="properties-content">
+      <div id="inspector-panel" className="properties-content" role="tabpanel" aria-labelledby={`inspector-tab-${tab}`}>
         {tab === "properties" && (
           <>
             <div className="section-heading"><span>Selected object</span></div>
@@ -148,7 +167,7 @@ export function PropertiesPanel() {
                 {dieline.layers.map((layer) => (
                   <div className="layer-row" key={layer.id}>
                     <button title={layer.visible ? "Hide layer" : "Show layer"} onClick={() => toggleLayer(layer.id, "visible")}>{layer.visible ? <Eye size={15} /> : <EyeOff size={15} />}</button>
-                    <span onClick={() => selectObject(layer.id)}><i className={`layer-dot layer-dot-${layer.id}`} />{layer.name}</span>
+                    <button className="layer-name-button" onClick={() => selectObject(layer.id)}><i className={`layer-dot layer-dot-${layer.id}`} />{layer.name}</button>
                     <button title={layer.locked ? "Unlock layer" : "Lock layer"} onClick={() => toggleLayer(layer.id, "locked")}>{layer.locked ? <Lock size={14} /> : <LockOpen size={14} />}</button>
                     <button className={layer.exportable ? "enabled" : ""} title="Include in export" onClick={() => toggleLayer(layer.id, "exportable")}><Download size={13} /></button>
                   </div>
@@ -197,14 +216,21 @@ export function PropertiesPanel() {
                 <label key={key}><input type="checkbox" checked={svgOptions[key]} onChange={(event) => setSvgOptions({ ...svgOptions, [key]: event.target.checked })} /><span>{label}</span></label>
               ))}
             </div>
-            <button className="primary-button export-primary" disabled={!dieline || Boolean(exporting)} onClick={() => void performExport("svg")}><FileCode2 size={17} /> Export editable SVG</button>
+            {operation?.kind === "export" && (
+              <div className={`export-operation operation-${operation.phase}`} role={operation.phase === "error" ? "alert" : "status"} aria-live={operation.phase === "error" ? "assertive" : "polite"}>
+                <div><span>{exportBusy ? <LoaderCircle className="spin" size={16} /> : operation.phase === "complete" ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}</span><strong>{operation.label}</strong><b>{Math.round(operation.progress * 100)}%</b></div>
+                <div className="progress-track" role="progressbar" aria-label={operation.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(operation.progress * 100)}><span style={{ width: `${operation.progress * 100}%` }} /></div>
+                <small>{operation.error ?? operation.status}</small>
+              </div>
+            )}
+            <button className="primary-button export-primary" disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("svg")}><FileCode2 size={17} /> Export editable SVG</button>
             <div className="export-grid">
-              <button disabled={!dieline || Boolean(exporting)} onClick={() => void performExport("pdf")}><FileText size={16} /><span><strong>PDF</strong><small>Vector print</small></span></button>
-              <button disabled={!dieline || Boolean(exporting)} onClick={() => void performExport("dxf")}><FileCode2 size={16} /><span><strong>DXF</strong><small>Layered CAD</small></span></button>
-              <button disabled={!dieline || Boolean(exporting)} onClick={() => void performExport("png")}><FileImage size={16} /><span><strong>PNG</strong><small>300 dpi</small></span></button>
-              <button disabled={!dieline || Boolean(exporting)} onClick={() => void performExport("jpg")}><FileImage size={16} /><span><strong>JPG</strong><small>300 dpi</small></span></button>
-              <button disabled={Boolean(exporting)} onClick={() => void performExport("json")}><FileCode2 size={16} /><span><strong>JSON</strong><small>Raw model</small></span></button>
-              <button disabled={Boolean(exporting)} onClick={() => void performExport("project")}><FileArchive size={16} /><span><strong>PDGPROJ</strong><small>Editable project</small></span></button>
+              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("pdf")}><FileText size={16} /><span><strong>PDF</strong><small>Vector print</small></span></button>
+              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("dxf")}><FileCode2 size={16} /><span><strong>DXF</strong><small>Layered CAD</small></span></button>
+              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("png")}><FileImage size={16} /><span><strong>PNG</strong><small>300 dpi</small></span></button>
+              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("jpg")}><FileImage size={16} /><span><strong>JPG</strong><small>300 dpi</small></span></button>
+              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("json")}><FileCode2 size={16} /><span><strong>JSON</strong><small>Raw model</small></span></button>
+              <button disabled={exportBusy || readOnly} onClick={() => void performExport("project")}><FileArchive size={16} /><span><strong>PDGPROJ</strong><small>Editable project</small></span></button>
             </div>
             <div className="compatibility-note"><Info size={14} /><span>SVG groups are named for Illustrator, Inkscape, CorelDRAW, and Affinity Designer.</span></div>
           </>
@@ -213,4 +239,3 @@ export function PropertiesPanel() {
     </aside>
   );
 }
-

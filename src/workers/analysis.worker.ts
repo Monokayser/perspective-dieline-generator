@@ -4,6 +4,11 @@ import type { AnnotationEdge, AnnotationPoint, ImageAnalysis, PackageCandidate, 
 import type { AnalysisWorkerRequest, AnalysisWorkerResponse } from "./protocol";
 
 const cancelledJobs = new Set<string>();
+const shouldCancel = (jobId: string) => {
+  if (!cancelledJobs.has(jobId)) return false;
+  cancelledJobs.delete(jobId);
+  return true;
+};
 
 const send = (message: AnalysisWorkerResponse, transfer: Transferable[] = []) => self.postMessage(message, transfer);
 
@@ -171,7 +176,7 @@ const analyse = async (jobId: string, image: ImageBitmap) => {
   const sourceHeight = image.height;
   image.close();
   progress(jobId, 0.12, "Decoding and normalising image");
-  if (cancelledJobs.has(jobId)) return;
+  if (shouldCancel(jobId)) return;
 
   const imageData = context.getImageData(0, 0, width, height);
   const { data } = imageData;
@@ -206,7 +211,7 @@ const analyse = async (jobId: string, image: ImageBitmap) => {
   const laplacianMean = laplacian / Math.max(1, laplacianCount);
   const sharpness = clamp(Math.sqrt(Math.max(0, laplacianSquared / Math.max(1, laplacianCount) - laplacianMean ** 2)) / 45);
   progress(jobId, 0.3, "Measuring focus and contrast");
-  if (cancelledJobs.has(jobId)) return;
+  if (shouldCancel(jobId)) return;
 
   const borderSamples: Array<[number, number, number]> = [];
   const sample = (x: number, y: number) => {
@@ -243,7 +248,7 @@ const analyse = async (jobId: string, image: ImageBitmap) => {
   }
   const coverage = foreground / (width * height);
   progress(jobId, 0.52, "Separating package from background");
-  if (cancelledJobs.has(jobId)) return;
+  if (shouldCancel(jobId)) return;
 
   try {
     const cvBounds = await tryOpenCvBounds(imageData);
@@ -261,7 +266,7 @@ const analyse = async (jobId: string, image: ImageBitmap) => {
     // The deterministic gradient/contour path remains available if WASM cannot initialise.
   }
   progress(jobId, 0.72, "Tracing contours and structural edges");
-  if (cancelledJobs.has(jobId)) return;
+  if (shouldCancel(jobId)) return;
 
   const noObject = foreground === 0 || coverage < 0.025 || minX >= maxX || minY >= maxY;
   if (noObject) {
@@ -349,7 +354,7 @@ const analyse = async (jobId: string, image: ImageBitmap) => {
     method: "local-gradient-and-contour",
   };
   progress(jobId, 0.94, "Ranking package structures");
-  if (!cancelledJobs.has(jobId)) send({ version: 1, type: "result", jobId, result });
+  if (!shouldCancel(jobId)) send({ version: 1, type: "result", jobId, result });
 };
 
 self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {

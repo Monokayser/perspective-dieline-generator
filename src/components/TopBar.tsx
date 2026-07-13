@@ -1,49 +1,76 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleHelp, CloudOff, FilePlus2, FolderOpen, Moon, Redo2, RefreshCw, Save, Sun, Undo2 } from "lucide-react";
-import { createProjectArchive, openProjectArchive } from "../domain/project";
-import { downloadBlob } from "../domain/exporters";
+import { openProjectArchive } from "../domain/project";
+import { saveCurrentProject } from "../lib/project-actions";
 import { useProjectStore } from "../store/project-store";
-
-const safeFilename = (value: string) => value.trim().replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "dieline-project";
 
 export function TopBar() {
   const openInput = useRef<HTMLInputElement | null>(null);
+  const helpDialog = useRef<HTMLElement | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const {
     projectName,
     theme,
-    imageDataUrl,
     history,
     future,
     dirty,
+    readOnly,
     setProjectName,
     setTheme,
     undo,
     redo,
     resetProject,
-    toDocument,
     loadProject,
+    showNotice,
+    beginOperation,
+    updateOperation,
+    completeOperation,
+    failOperation,
   } = useProjectStore();
 
-  const save = () => {
-    downloadBlob(createProjectArchive(toDocument(), imageDataUrl ?? undefined), `${safeFilename(projectName)}.pdgproj`);
-  };
+  const save = () => void saveCurrentProject();
+
+  useEffect(() => {
+    if (!helpOpen || !helpDialog.current) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = helpDialog.current;
+    const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])")).filter((element) => !element.hasAttribute("disabled"));
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setHelpOpen(false); return; }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("keydown", onKeyDown); previous?.focus(); };
+  }, [helpOpen]);
 
   const open = async (file: File) => {
+    const operationId = beginOperation("project-open", "Opening project", "Reading and validating project archive", file.name);
     try {
+      updateOperation(operationId, { phase: "processing", progress: 0.25, status: "Checking archive safety" });
       const project = await openProjectArchive(file);
-      loadProject(project.document, project.sourceImageDataUrl);
+      updateOperation(operationId, { phase: "processing", progress: 0.8, status: "Restoring project workspace" });
+      loadProject(project.document, project.sourceImageDataUrl, { readOnly: project.readOnly, sourceSchemaVersion: project.sourceSchemaVersion });
+      completeOperation(operationId, project.readOnly ? "Project opened read-only" : "Project opened successfully");
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "The project could not be opened.");
+      const message = error instanceof Error ? error.message : "The project could not be opened.";
+      failOperation(operationId, message);
+      showNotice("error", message);
     }
   };
 
   const checkForUpdates = async () => {
     if (!("__TAURI_INTERNALS__" in window)) {
-      window.alert("Desktop update checks are available in the installed Windows app.");
+      showNotice("info", "Desktop update checks are available in the installed Windows app.");
       return;
     }
     setCheckingUpdate(true);
@@ -51,15 +78,15 @@ export function TopBar() {
       const { check } = await import("@tauri-apps/plugin-updater");
       const update = await check();
       if (!update) {
-        window.alert("Perspective Dieline Generator is up to date.");
+        showNotice("success", "Perspective Dieline Generator is up to date.");
         return;
       }
       if (window.confirm(`Version ${update.version} is available. Download and install it now?`)) {
         await update.downloadAndInstall();
-        window.alert("The update is installed. Restart the application to finish updating.");
+        showNotice("success", "The update is installed. Restart the application to finish updating.");
       }
     } catch (error) {
-      window.alert(error instanceof Error ? `Update check failed: ${error.message}` : "Update check failed. Offline use is unaffected.");
+      showNotice("error", error instanceof Error ? `Update check failed: ${error.message}` : "Update check failed. Offline use is unaffected.");
     } finally {
       setCheckingUpdate(false);
     }
@@ -73,13 +100,13 @@ export function TopBar() {
           <div className="brand-copy"><strong>Perspective Dieline</strong><span>Package engineering workspace</span></div>
         </div>
         <div className="project-title-wrap">
-          <input aria-label="Project name" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+          <input aria-label="Project name" value={projectName} disabled={readOnly} onChange={(event) => setProjectName(event.target.value)} />
           {dirty && <i title="Unsaved changes" />}
         </div>
         <nav className="topbar-actions" aria-label="Project actions">
           <button title="New project" onClick={() => { if (!dirty || window.confirm("Create a new project? Unsaved changes will be discarded.")) resetProject(); }}><FilePlus2 size={17} /><span>New</span></button>
           <button title="Open project" onClick={() => openInput.current?.click()}><FolderOpen size={17} /><span>Open</span></button>
-          <button title="Save project (Ctrl+S)" onClick={save}><Save size={17} /><span>Save</span></button>
+          <button title={readOnly ? "Read-only project" : "Save project (Ctrl+S)"} disabled={readOnly} onClick={save}><Save size={17} /><span>Save</span></button>
           <span className="topbar-divider" />
           <button title="Undo (Ctrl+Z)" disabled={history.length === 0} onClick={undo}><Undo2 size={17} /></button>
           <button title="Redo (Ctrl+Y)" disabled={future.length === 0} onClick={redo}><Redo2 size={17} /></button>
@@ -93,8 +120,8 @@ export function TopBar() {
       </header>
       {helpOpen && (
         <div className="modal-backdrop" role="presentation" onPointerDown={() => setHelpOpen(false)}>
-          <section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onPointerDown={(event) => event.stopPropagation()}>
-            <div className="modal-heading"><span><CircleHelp size={19} /><strong id="help-title">Workspace guide</strong></span><button onClick={() => setHelpOpen(false)}>×</button></div>
+          <section ref={helpDialog} className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="modal-heading"><span><CircleHelp size={19} /><strong id="help-title">Workspace guide</strong></span><button aria-label="Close workspace guide" onClick={() => setHelpOpen(false)}>×</button></div>
             <div className="help-grid">
               <div><b>1</b><span><strong>Upload and prepare</strong><p>Use a perspective JPG, PNG, or WEBP. Crop closely and improve edge contrast.</p></span></div>
               <div><b>2</b><span><strong>Detect and correct</strong><p>Automatic corners are candidates. Drag every uncertain point onto a real package edge.</p></span></div>

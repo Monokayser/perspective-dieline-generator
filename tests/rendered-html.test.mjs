@@ -12,14 +12,14 @@ async function render() {
   );
 }
 
-test("server renders the complete local-first workbench shell", async () => {
+test("server renders an accessible local-first boot shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /Perspective Package Image to 2D Dieline Generator/i);
-  assert.match(html, /Images are processed locally/i);
-  assert.match(html, /Upload/i);
-  assert.match(html, /Detect/i);
-  assert.match(html, /Export/i);
+  assert.match(html, /Perspective Dieline Generator/i);
+  assert.match(html, /Preparing the local-first workbench/i);
+  assert.match(html, /aria-busy="true"/i);
+  assert.match(html, /without uploading private artwork/i);
+  assert.doesNotMatch(html, /sign in|database|cloud project sync/i);
 });

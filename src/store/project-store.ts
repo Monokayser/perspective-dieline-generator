@@ -1,13 +1,15 @@
 "use client";
 
 import { create } from "zustand";
-import { analyseImage, cancelAnalysis } from "../lib/analysis-client";
+import { analyseImage, AnalysisCancelledError, cancelAnalysis } from "../lib/analysis-client";
 import { createDefaultDimensions, DEFAULT_PREPROCESS } from "../domain/defaults";
 import { generateDieline, getTemplate } from "../domain/templates";
 import type {
   DielineModel,
   EdgeKind,
   ImageAnalysis,
+  OperationKind,
+  OperationState,
   PackageDimensions,
   PreprocessSettings,
   ProjectDocument,
@@ -26,6 +28,8 @@ type Snapshot = {
 };
 
 type Notice = { id: string; tone: "success" | "warning" | "error" | "info"; message: string };
+
+type LoadProjectOptions = { readOnly?: boolean; sourceSchemaVersion?: number };
 
 type ProjectStore = {
   projectId: string;
@@ -57,6 +61,9 @@ type ProjectStore = {
   future: Snapshot[];
   notice: Notice | null;
   dirty: boolean;
+  readOnly: boolean;
+  sourceSchemaVersion: number;
+  operation: OperationState | null;
   setProjectName(name: string): void;
   setStage(stage: number): void;
   setTheme(theme: "light" | "dark"): void;
@@ -87,8 +94,15 @@ type ProjectStore = {
   undo(): void;
   redo(): void;
   dismissNotice(): void;
+  showNotice(tone: Notice["tone"], message: string): void;
+  beginOperation(kind: OperationKind, label: string, status: string, filename?: string): string;
+  updateOperation(id: string, patch: Partial<Pick<OperationState, "phase" | "progress" | "status" | "filename" | "error">>): void;
+  completeOperation(id: string, status: string): void;
+  failOperation(id: string, message: string): void;
+  clearOperation(): void;
+  markSaved(): void;
   resetProject(): void;
-  loadProject(document: ProjectDocument, imageDataUrl?: string): void;
+  loadProject(document: ProjectDocument, imageDataUrl?: string, options?: LoadProjectOptions): void;
   toDocument(): ProjectDocument;
 };
 
@@ -137,8 +151,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   future: [],
   notice: null,
   dirty: false,
+  readOnly: false,
+  sourceSchemaVersion: 1,
+  operation: null,
 
-  setProjectName: (projectName) => set({ projectName: projectName.slice(0, 160), dirty: true }),
+  setProjectName: (projectName) => {
+    if (get().readOnly) return;
+    set({ projectName: projectName.slice(0, 160), dirty: true });
+  },
   setStage: (stage) => {
     const next = Math.max(0, Math.min(7, stage));
     if (next <= get().maxStage) set({ stage: next });
@@ -150,6 +170,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   setUnit: (unit) => set({ unit, dirty: true }),
   setTemplate: (templateId) => {
     const state = get();
+    if (state.readOnly) return;
     set({
       history: [...state.history.slice(-99), snapshot(state)],
       future: [],
@@ -159,8 +180,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       dirty: true,
     });
   },
-  setPreprocess: (patch) => set((state) => ({ preprocess: { ...state.preprocess, ...patch }, dirty: true })),
-  setImage: (imageDataUrl, imageFilename, imageMimeType) => set({
+  setPreprocess: (patch) => set((state) => state.readOnly ? state : ({ preprocess: { ...state.preprocess, ...patch }, dirty: true })),
+  setImage: (imageDataUrl, imageFilename, imageMimeType) => {
+    if (get().readOnly) return;
+    set({
     imageDataUrl,
     imageFilename,
     imageMimeType,
@@ -171,8 +194,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     validationIssues: [],
     analysisError: null,
     dirty: true,
-  }),
-  clearImage: () => set({
+    });
+  },
+  clearImage: () => {
+    if (get().readOnly) return;
+    set({
     imageDataUrl: null,
     imageFilename: null,
     imageMimeType: null,
@@ -182,16 +208,22 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     maxStage: 0,
     validationIssues: [],
     dirty: true,
-  }),
+    });
+  },
   runAnalysis: async () => {
+    if (get().readOnly) return;
     const imageDataUrl = get().imageDataUrl;
     if (!imageDataUrl) {
       set({ notice: { id: crypto.randomUUID(), tone: "warning", message: "Upload an image before running detection." } });
       return;
     }
+    const operationId = get().beginOperation("analysis", "Analysing package image", "Starting local analysis");
     set({ analysisRunning: true, analysisProgress: 0, analysisStage: "Starting local analysis", analysisError: null, stage: 1 });
     try {
-      const analysis = await analyseImage(imageDataUrl, (analysisProgress, analysisStage) => set({ analysisProgress, analysisStage }));
+      const analysis = await analyseImage(imageDataUrl, (analysisProgress, analysisStage) => {
+        set({ analysisProgress, analysisStage });
+        get().updateOperation(operationId, { phase: "processing", progress: analysisProgress, status: analysisStage });
+      });
       const topCandidate = analysis.candidates[0]?.templateId;
       set({
         analysis,
@@ -204,9 +236,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         notice: { id: crypto.randomUUID(), tone: analysis.confidence >= 0.55 ? "success" : "warning", message: analysis.confidence >= 0.55 ? "Package structure detected locally." : "Detection needs manual confirmation." },
         dirty: true,
       });
+      get().completeOperation(operationId, "Package analysis complete");
     } catch (error) {
+      if (error instanceof AnalysisCancelledError) {
+        set({ analysisRunning: false, analysisStage: "Analysis cancelled", analysisError: null });
+        get().updateOperation(operationId, { phase: "cancelled", progress: get().analysisProgress, status: "Analysis cancelled" });
+        return;
+      }
       const message = error instanceof Error ? error.message : "Image analysis failed.";
       set({ analysisRunning: false, analysisError: message, analysisStage: "Manual correction available", maxStage: Math.max(3, get().maxStage), notice: { id: crypto.randomUUID(), tone: "error", message } });
+      get().failOperation(operationId, message);
     }
   },
   cancelAnalysis: () => {
@@ -214,7 +253,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ analysisRunning: false, analysisStage: "Analysis cancelled", notice: { id: crypto.randomUUID(), tone: "info", message: "Analysis cancelled. Existing annotations were preserved." } });
   },
   updateAnnotationPoint: (id, x, y) => set((state) => {
-    if (!state.analysis) return state;
+    if (!state.analysis || state.readOnly) return state;
     return {
       analysis: {
         ...state.analysis,
@@ -223,7 +262,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       dirty: true,
     };
   }),
-  approveFace: (id) => set((state) => state.analysis ? ({
+  approveFace: (id) => set((state) => state.analysis && !state.readOnly ? ({
     analysis: { ...state.analysis, faces: state.analysis.faces.map((face) => face.id === id ? { ...face, approved: true, confidence: 1 } : face) },
     maxStage: Math.max(3, state.maxStage),
     stage: 3,
@@ -232,6 +271,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   updateDimension: (key, valueMm) => {
     if (!Number.isFinite(valueMm) || valueMm < 0) return;
     const state = get();
+    if (state.readOnly) return;
     const dimensions = cloneDimensions(state.dimensions);
     dimensions[key] = { ...dimensions[key], valueMm, provenance: "manual", confidence: undefined };
     set({
@@ -243,7 +283,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       dirty: true,
     });
   },
-  confirmDimensions: () => set((state) => ({
+  confirmDimensions: () => set((state) => state.readOnly ? state : ({
     dimensions: Object.fromEntries(Object.entries(state.dimensions).map(([key, measurement]) => [key, { ...measurement, provenance: "confirmed", confidence: 1 }])) as unknown as PackageDimensions,
     maxStage: Math.max(4, state.maxStage),
     stage: 4,
@@ -252,6 +292,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   })),
   generate: () => {
     const state = get();
+    if (state.readOnly) return false;
     const template = getTemplate(state.templateId);
     const unconfirmed = template.required.filter((key) => state.dimensions[key].provenance !== "confirmed");
     const dimensionErrors = template.validateDimensions(state.dimensions);
@@ -280,13 +321,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ validationIssues, stage: get().dieline ? 6 : get().stage, notice: { id: crypto.randomUUID(), tone: validationIssues.some((item) => item.severity === "error") ? "error" : "success", message: validationIssues.some((item) => item.severity === "error") ? "Validation found blocking geometry errors." : "Validation completed. No blocking geometry errors." } });
     return validationIssues;
   },
-  toggleLayer: (id, field) => set((state) => state.dieline ? ({
+  toggleLayer: (id, field) => set((state) => state.dieline && !state.readOnly ? ({
     dieline: { ...state.dieline, layers: state.dieline.layers.map((layer) => layer.id === id ? { ...layer, [field]: !layer[field] } : layer) },
     dirty: true,
   }) : state),
   selectObject: (selectedObjectId) => set({ selectedObjectId }),
   moveSelected: (dx, dy) => set((state) => {
-    if (!state.dieline || !state.selectedObjectId) return state;
+    if (!state.dieline || !state.selectedObjectId || state.readOnly) return state;
     const move = <T extends { id: string; points: Array<{ x: number; y: number }> }>(object: T): T => object.id === state.selectedObjectId
       ? { ...object, points: object.points.map((point) => ({ x: point.x + dx, y: point.y + dy })) }
       : object;
@@ -297,7 +338,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     };
   }),
   rotateSelected: (degrees) => set((state) => {
-    if (!state.dieline || !state.selectedObjectId) return state;
+    if (!state.dieline || !state.selectedObjectId || state.readOnly) return state;
     const rotate = <T extends { id: string; points: Array<{ x: number; y: number }> }>(object: T): T => {
       if (object.id !== state.selectedObjectId) return object;
       const cx = object.points.reduce((sum, point) => sum + point.x, 0) / object.points.length;
@@ -314,7 +355,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     return { dieline: { ...state.dieline, customMode: true, panels: state.dieline.panels.map(rotate), paths: state.dieline.paths.map(rotate) }, validationIssues: [], dirty: true };
   }),
   duplicateSelected: () => set((state) => {
-    if (!state.dieline || !state.selectedObjectId) return state;
+    if (!state.dieline || !state.selectedObjectId || state.readOnly) return state;
     const panel = state.dieline.panels.find((object) => object.id === state.selectedObjectId);
     const path = state.dieline.paths.find((object) => object.id === state.selectedObjectId);
     if (!panel && !path) return state;
@@ -332,7 +373,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     };
   }),
   deleteSelected: () => set((state) => {
-    if (!state.dieline || !state.selectedObjectId) return state;
+    if (!state.dieline || !state.selectedObjectId || state.readOnly) return state;
     return {
       dieline: { ...state.dieline, customMode: true, panels: state.dieline.panels.filter((panel) => panel.id !== state.selectedObjectId), paths: state.dieline.paths.filter((path) => path.id !== state.selectedObjectId) },
       selectedObjectId: null,
@@ -341,7 +382,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     };
   }),
   setSelectedPathKind: (kind) => set((state) => {
-    if (!state.dieline || !state.selectedObjectId) return state;
+    if (!state.dieline || !state.selectedObjectId || state.readOnly) return state;
     return {
       dieline: { ...state.dieline, customMode: true, paths: state.dieline.paths.map((path) => path.id === state.selectedObjectId ? { ...path, kind } : path) },
       validationIssues: [],
@@ -353,6 +394,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   setPan: (x, y) => set({ pan: { x, y } }),
   undo: () => {
     const state = get();
+    if (state.readOnly) return;
     const previous = state.history.at(-1);
     if (!previous) return;
     set({
@@ -366,6 +408,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
   redo: () => {
     const state = get();
+    if (state.readOnly) return;
     const next = state.future[0];
     if (!next) return;
     set({
@@ -378,6 +421,19 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     });
   },
   dismissNotice: () => set({ notice: null }),
+  showNotice: (tone, message) => set({ notice: { id: crypto.randomUUID(), tone, message } }),
+  beginOperation: (kind, label, status, filename) => {
+    const id = crypto.randomUUID();
+    set({ operation: { id, kind, phase: "preparing", label, status, progress: 0, filename, startedAt: new Date().toISOString() } });
+    return id;
+  },
+  updateOperation: (id, patch) => set((state) => state.operation?.id === id
+    ? { operation: { ...state.operation, ...patch, progress: patch.progress === undefined ? state.operation.progress : Math.max(0, Math.min(1, patch.progress)) } }
+    : state),
+  completeOperation: (id, status) => set((state) => state.operation?.id === id ? ({ operation: { ...state.operation, phase: "complete", progress: 1, status, completedAt: new Date().toISOString() } }) : state),
+  failOperation: (id, message) => set((state) => state.operation?.id === id ? ({ operation: { ...state.operation, phase: "error", status: "Operation failed", error: message, completedAt: new Date().toISOString() } }) : state),
+  clearOperation: () => set({ operation: null }),
+  markSaved: () => set({ dirty: false }),
   resetProject: () => {
     const identity = createIdentity();
     set({
@@ -398,9 +454,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       selectedObjectId: null,
       notice: { id: crypto.randomUUID(), tone: "info", message: "New local project created." },
       dirty: false,
+      readOnly: false,
+      sourceSchemaVersion: 1,
+      operation: null,
     });
   },
-  loadProject: (document, imageDataUrl) => set({
+  loadProject: (document, imageDataUrl, options = {}) => set({
     projectId: document.projectId,
     projectName: document.projectName,
     createdAt: document.createdAt,
@@ -421,7 +480,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     history: [],
     future: [],
     dirty: false,
-    notice: { id: crypto.randomUUID(), tone: "success", message: `${document.projectName} opened locally.` },
+    readOnly: options.readOnly ?? false,
+    sourceSchemaVersion: options.sourceSchemaVersion ?? document.schemaVersion,
+    notice: { id: crypto.randomUUID(), tone: options.readOnly ? "warning" : "success", message: options.readOnly ? `${document.projectName} opened read-only because it uses project schema ${options.sourceSchemaVersion ?? document.schemaVersion}.` : `${document.projectName} opened locally.` },
   }),
   toDocument: () => {
     const state = get();

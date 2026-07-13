@@ -1,4 +1,4 @@
-import type { DielineModel, PanelGeometry, Point, Unit, VectorPath } from "./types";
+import type { DielineModel, PanelGeometry, Point, SvgExportSettings, VectorPath } from "./types";
 import { fromMillimetres } from "./units";
 
 const escapeXml = (value: string) =>
@@ -41,16 +41,7 @@ const panelCentroid = (panel: PanelGeometry) => ({
   y: panel.points.reduce((sum, point) => sum + point.y, 0) / panel.points.length,
 });
 
-export type SvgExportOptions = {
-  unit: Unit;
-  includeMeasurements: boolean;
-  includeLabels: boolean;
-  includeBleed: boolean;
-  includeSafeArea: boolean;
-  includeGuides: boolean;
-  includeLegend: boolean;
-  includeArtboard: boolean;
-};
+export type SvgExportOptions = SvgExportSettings;
 
 export const DEFAULT_SVG_OPTIONS: SvgExportOptions = {
   unit: "mm",
@@ -178,34 +169,32 @@ export const exportMinimalVectorPdf = (model: DielineModel) => {
   return new Blob([pdf], { type: "application/pdf" });
 };
 
-export const downloadBlob = (blob: Blob, filename: string) => {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
-
-export const downloadText = (content: string, filename: string, type: string) =>
-  downloadBlob(new Blob([content], { type }), filename);
-
 export const exportRasterPreview = async (
   model: DielineModel,
   format: "png" | "jpeg",
   dpi = 300,
+  onProgress?: (progress: number, status: string) => void,
 ) => {
+  if (!Number.isFinite(dpi) || dpi < 72 || dpi > 600) throw new Error("Raster resolution must be between 72 and 600 DPI.");
   const svg = exportSvg(model, DEFAULT_SVG_OPTIONS);
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
+    onProgress?.(0.42, "Decoding vector preview");
     const image = new Image();
     image.decoding = "async";
     image.src = url;
     await image.decode();
     const scale = dpi / 25.4;
+    const width = Math.max(1, Math.round(model.artboard.widthMm * scale));
+    const height = Math.max(1, Math.round(model.artboard.heightMm * scale));
+    const pixels = width * height;
+    if (width > 32_767 || height > 32_767 || pixels > 100_000_000) {
+      throw new Error(`The ${width.toLocaleString()} × ${height.toLocaleString()} raster would exceed the 100 megapixel safety limit. Lower the DPI or export SVG/PDF instead.`);
+    }
+    onProgress?.(0.58, "Rendering high-resolution preview");
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(model.artboard.widthMm * scale));
-    canvas.height = Math.max(1, Math.round(model.artboard.heightMm * scale));
+    canvas.width = width;
+    canvas.height = height;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Raster export is unavailable.");
     if (format === "jpeg") {
@@ -213,6 +202,7 @@ export const exportRasterPreview = async (
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    onProgress?.(0.78, `Encoding ${format === "jpeg" ? "JPG" : "PNG"}`);
     return await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Raster encoding failed.")), `image/${format}`, format === "jpeg" ? 0.92 : undefined));
   } finally {
     URL.revokeObjectURL(url);

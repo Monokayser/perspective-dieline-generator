@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Box, ScanLine, ShieldCheck, X } from "lucide-react";
 import { createSamplePackageImage } from "../lib/sample-image";
 import { useProjectStore } from "../store/project-store";
@@ -8,12 +8,35 @@ import { useProjectStore } from "../store/project-store";
 export function Onboarding() {
   const { imageDataUrl, setImage, runAnalysis } = useProjectStore();
   const [visible, setVisible] = useState(false);
+  const dialogRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setVisible(localStorage.getItem("pdg-onboarding-complete") !== "true");
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
+  useEffect(() => {
+    if (!visible || !dialogRef.current) return;
+    const dialog = dialogRef.current;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>("button,[href],[tabindex]:not([tabindex='-1'])"));
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        localStorage.setItem("pdg-onboarding-complete", "true");
+        setVisible(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (items.length === 0) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1)?.focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("keydown", onKeyDown); previous?.focus(); };
+  }, [visible]);
   if (!visible || imageDataUrl) return null;
   const close = () => { localStorage.setItem("pdg-onboarding-complete", "true"); setVisible(false); };
   const sample = () => {
@@ -23,7 +46,7 @@ export function Onboarding() {
   };
   return (
     <div className="onboarding-backdrop">
-      <section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      <section ref={dialogRef} className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
         <button className="onboarding-close" onClick={close} aria-label="Close onboarding"><X size={18} /></button>
         <div className="onboarding-mark"><div className="app-mark large"><span /><span /><span /></div></div>
         <span className="eyebrow">Professional local-first workspace</span>

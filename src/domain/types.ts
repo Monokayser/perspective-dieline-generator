@@ -1,5 +1,66 @@
 export type Unit = "mm" | "cm" | "in" | "pt";
 
+export type OperationKind = "image-load" | "analysis" | "project-open" | "project-save" | "validation" | "export";
+
+export type OperationPhase =
+  | "preparing"
+  | "validating"
+  | "processing"
+  | "encoding"
+  | "saving"
+  | "complete"
+  | "cancelled"
+  | "error";
+
+export interface OperationState {
+  id: string;
+  kind: OperationKind;
+  phase: OperationPhase;
+  label: string;
+  status: string;
+  progress: number;
+  filename?: string;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+export type ExportFormat = "svg" | "pdf" | "dxf" | "png" | "jpg" | "json" | "project";
+
+export interface ExportRequest {
+  format: ExportFormat;
+  filename: string;
+  svgOptions?: SvgExportSettings;
+}
+
+export interface SvgExportSettings {
+  unit: Unit;
+  includeMeasurements: boolean;
+  includeLabels: boolean;
+  includeBleed: boolean;
+  includeSafeArea: boolean;
+  includeGuides: boolean;
+  includeLegend: boolean;
+  includeArtboard: boolean;
+}
+
+export interface ExportProgress {
+  phase: OperationPhase;
+  progress: number;
+  status: string;
+}
+
+export interface ExportResult {
+  format: ExportFormat;
+  filename: string;
+  bytes: number;
+  destination: "download" | "desktop";
+}
+
+export interface FileSaveAdapter {
+  save(blob: Blob, filename: string, description?: string): Promise<{ filename: string; destination: "download" | "desktop"; cancelled: boolean }>;
+}
+
 export type Provenance =
   | "confirmed"
   | "manual"
@@ -192,7 +253,7 @@ export interface PreprocessSettings {
 }
 
 export interface ProjectDocument {
-  schemaVersion: 1;
+  schemaVersion: number;
   application: "Perspective Dieline Generator";
   projectId: string;
   projectName: string;

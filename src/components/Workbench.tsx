@@ -9,12 +9,10 @@ import { StatusBar } from "./StatusBar";
 import { ToolPanel } from "./ToolPanel";
 import { TopBar } from "./TopBar";
 import { WorkflowBar } from "./WorkflowBar";
-import { downloadBlob } from "../domain/exporters";
-import { createProjectArchive, readRecoverySnapshot, saveRecoverySnapshot } from "../domain/project";
+import { readRecoverySnapshot, saveRecoverySnapshot } from "../domain/project";
 import type { ProjectDocument } from "../domain/types";
+import { saveCurrentProject } from "../lib/project-actions";
 import { useProjectStore } from "../store/project-store";
-
-const safeFilename = (value: string) => value.trim().replace(/[^a-z0-9_-]+/gi, "-").replace(/^-|-$/g, "") || "dieline-project";
 
 export function Workbench() {
   const [leftWidth, setLeftWidth] = useState(278);
@@ -23,12 +21,18 @@ export function Workbench() {
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [recovery, setRecovery] = useState<ProjectDocument | null>(null);
   const resizeRef = useRef<{ side: "left" | "right"; startX: number; startWidth: number } | null>(null);
+  const leftDrawerButton = useRef<HTMLButtonElement | null>(null);
+  const rightDrawerButton = useRef<HTMLButtonElement | null>(null);
+  const [compactPanels, setCompactPanels] = useState(false);
   const {
     theme,
     projectName,
     imageDataUrl,
     dirty,
     notice,
+    operation,
+    readOnly,
+    sourceSchemaVersion,
     zoom,
     toDocument,
     loadProject,
@@ -39,6 +43,7 @@ export function Workbench() {
     redo,
     deleteSelected,
     dismissNotice,
+    clearOperation,
   } = useProjectStore();
 
   useEffect(() => {
@@ -67,12 +72,32 @@ export function Workbench() {
   }, [notice, dismissNotice]);
 
   useEffect(() => {
+    if (!operation || !["complete", "cancelled", "error"].includes(operation.phase)) return;
+    const timer = window.setTimeout(clearOperation, operation.phase === "error" ? 8000 : 5000);
+    return () => window.clearTimeout(timer);
+  }, [operation, clearOperation]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1100px)");
+    const update = () => setCompactPanels(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!compactPanels) return;
+    const panel = leftDrawerOpen ? document.getElementById("workflow-tools-panel") : rightDrawerOpen ? document.getElementById("properties-panel") : null;
+    panel?.querySelector<HTMLElement>("button,input,select,[tabindex='0']")?.focus();
+  }, [compactPanels, leftDrawerOpen, rightDrawerOpen]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName;
       const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        downloadBlob(createProjectArchive(toDocument(), imageDataUrl ?? undefined), `${safeFilename(projectName)}.pdgproj`);
+        void saveCurrentProject();
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); undo(); }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") { event.preventDefault(); redo(); }
@@ -87,7 +112,7 @@ export function Workbench() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteSelected, imageDataUrl, projectName, redo, setPan, setTool, setZoom, toDocument, undo, zoom]);
+  }, [deleteSelected, redo, setPan, setTool, setZoom, undo, zoom]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -108,20 +133,26 @@ export function Workbench() {
   };
 
   return (
-    <div className={`app-shell${leftDrawerOpen ? " left-drawer-open" : ""}${rightDrawerOpen ? " right-drawer-open" : ""}`} style={{ "--left-panel": `${leftWidth}px`, "--right-panel": `${rightWidth}px` } as React.CSSProperties}>
+    <div className={`app-shell${leftDrawerOpen ? " left-drawer-open" : ""}${rightDrawerOpen ? " right-drawer-open" : ""}${readOnly ? " read-only" : ""}`} style={{ "--left-panel": `${leftWidth}px`, "--right-panel": `${rightWidth}px` } as React.CSSProperties}>
       <TopBar />
       <WorkflowBar />
-      <div className="main-layout">
-        <div className="drawer-actions" aria-label="Workspace panels">
-          <button aria-label="Open workflow tools" onClick={() => { setLeftDrawerOpen(true); setRightDrawerOpen(false); }}><PanelLeftOpen size={16} /> Tools</button>
-          <button aria-label="Open properties and export" onClick={() => { setRightDrawerOpen(true); setLeftDrawerOpen(false); }}>Inspect <PanelRightOpen size={16} /></button>
+      {operation && !["complete", "cancelled", "error"].includes(operation.phase) && (
+        <div className="global-operation" role="progressbar" aria-label={operation.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(operation.progress * 100)} aria-valuetext={operation.status}>
+          <span style={{ width: `${operation.progress * 100}%` }} />
         </div>
-        <ToolPanel />
-        <button className="panel-resizer left-resizer" aria-label="Resize tools panel" onPointerDown={(event) => beginResize("left", event)} />
+      )}
+      <div className="main-layout">
+        {readOnly && <div className="read-only-banner" role="status">Read-only project · schema {sourceSchemaVersion}. Editing and saving are disabled.</div>}
+        <div className="drawer-actions" aria-label="Workspace panels">
+          <button ref={leftDrawerButton} aria-label="Open workflow tools" aria-expanded={leftDrawerOpen} aria-controls="workflow-tools-panel" onClick={() => { setLeftDrawerOpen(true); setRightDrawerOpen(false); }}><PanelLeftOpen size={16} /> Tools</button>
+          <button ref={rightDrawerButton} aria-label="Open properties and export" aria-expanded={rightDrawerOpen} aria-controls="properties-panel" onClick={() => { setRightDrawerOpen(true); setLeftDrawerOpen(false); }}>Inspect <PanelRightOpen size={16} /></button>
+        </div>
+        <ToolPanel inert={readOnly || (compactPanels && !leftDrawerOpen)} />
+        <button className="panel-resizer left-resizer" role="separator" aria-orientation="vertical" aria-valuemin={240} aria-valuemax={420} aria-valuenow={leftWidth} aria-label="Resize tools panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setLeftWidth(Math.max(240, leftWidth - 10)); if (event.key === "ArrowRight") setLeftWidth(Math.min(420, leftWidth + 10)); }} onPointerDown={(event) => beginResize("left", event)} />
         <CanvasWorkspace />
-        <button className="panel-resizer right-resizer" aria-label="Resize properties panel" onPointerDown={(event) => beginResize("right", event)} />
-        <PropertiesPanel />
-        {(leftDrawerOpen || rightDrawerOpen) && <button className="drawer-backdrop" aria-label="Close side panel" onClick={() => { setLeftDrawerOpen(false); setRightDrawerOpen(false); }} />}
+        <button className="panel-resizer right-resizer" role="separator" aria-orientation="vertical" aria-valuemin={270} aria-valuemax={440} aria-valuenow={rightWidth} aria-label="Resize properties panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setRightWidth(Math.min(440, rightWidth + 10)); if (event.key === "ArrowRight") setRightWidth(Math.max(270, rightWidth - 10)); }} onPointerDown={(event) => beginResize("right", event)} />
+        <PropertiesPanel inert={compactPanels && !rightDrawerOpen} />
+        {(leftDrawerOpen || rightDrawerOpen) && <button className="drawer-backdrop" aria-label="Close side panel" onClick={() => { const restore = leftDrawerOpen ? leftDrawerButton.current : rightDrawerButton.current; setLeftDrawerOpen(false); setRightDrawerOpen(false); window.setTimeout(() => restore?.focus()); }} />}
       </div>
       <StatusBar />
       <Onboarding />
@@ -134,7 +165,7 @@ export function Workbench() {
         </div>
       )}
       {notice && (
-        <div className={`toast toast-${notice.tone}`} role="status" aria-live="polite">
+        <div className={`toast toast-${notice.tone}`} role={notice.tone === "error" ? "alert" : "status"} aria-live={notice.tone === "error" ? "assertive" : "polite"}>
           {notice.tone === "success" ? <CheckCircle2 size={17} /> : notice.tone === "warning" || notice.tone === "error" ? <AlertTriangle size={17} /> : <Info size={17} />}
           <span>{notice.message}</span>
           <button onClick={dismissNotice} aria-label="Dismiss notification"><X size={14} /></button>

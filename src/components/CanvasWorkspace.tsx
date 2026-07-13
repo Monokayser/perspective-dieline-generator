@@ -29,7 +29,7 @@ const layerForKind = (kind: VectorPath["kind"]) => ({
   artboard: "artboard",
 }[kind]);
 
-function DielineCanvas() {
+function DielineCanvas({ showGrid = true, preview = false }: { showGrid?: boolean; preview?: boolean }) {
   const {
     dieline,
     zoom,
@@ -63,9 +63,9 @@ function DielineCanvas() {
   };
 
   return (
-    <div className="canvas-scroll dieline-surface">
+    <div className={`canvas-scroll dieline-surface${preview ? " print-preview-surface" : ""}`}>
       <svg
-        className="dieline-canvas"
+        className={`dieline-canvas${preview ? " print-preview-canvas" : ""}`}
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         aria-label="Editable dieline vector workspace"
         onWheel={onWheel}
@@ -85,13 +85,13 @@ function DielineCanvas() {
           </pattern>
         </defs>
         <rect width={viewWidth} height={viewHeight} className="artboard-fill" />
-        <rect width={viewWidth} height={viewHeight} fill="url(#major-grid)" />
+        {showGrid && !preview && <rect width={viewWidth} height={viewHeight} fill="url(#major-grid)" />}
         {visibleLayers.has("panel-geometry") && dieline.panels.map((panel) => (
           <path
             key={panel.id}
             d={pathData(panel.points, true)}
             className={`panel-shape panel-${panel.role} ${selectedObjectId === panel.id ? "selected" : ""}`}
-            onPointerDown={(event) => { event.stopPropagation(); selectObject(panel.id); }}
+            onPointerDown={(event) => { if (!preview) { event.stopPropagation(); selectObject(panel.id); } }}
           />
         ))}
         {dieline.paths.map((path) => visibleLayers.has(layerForKind(path.kind)) && (
@@ -99,7 +99,7 @@ function DielineCanvas() {
             key={path.id}
             d={pathData(path.points, path.closed)}
             className={`${pathClass(path.kind)} ${selectedObjectId === path.id ? "selected" : ""}`}
-            onPointerDown={(event) => { event.stopPropagation(); selectObject(path.id); }}
+            onPointerDown={(event) => { if (!preview) { event.stopPropagation(); selectObject(path.id); } }}
           />
         ))}
         {visibleLayers.has("labels") && dieline.panels.map((panel) => {
@@ -154,6 +154,8 @@ function ImageCanvas() {
   return (
     <div className="image-workspace">
       <div className="image-stage">
+        {/* The original user-selected data URL must remain byte-for-byte local and is not eligible for framework image optimisation. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageDataUrl}
           alt={`Source package: ${imageFilename ?? "uploaded image"}`}
@@ -199,7 +201,7 @@ function ImageCanvas() {
           <div className="analysis-progress" role="status" aria-live="polite">
             <div className="spinner" />
             <strong>{analysisStage}</strong>
-            <div className="progress-track"><span style={{ width: `${analysisProgress * 100}%` }} /></div>
+            <div className="progress-track" role="progressbar" aria-label="Local image analysis" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(analysisProgress * 100)}><span style={{ width: `${analysisProgress * 100}%` }} /></div>
             <small>{Math.round(analysisProgress * 100)}% · running locally</small>
           </div>
         )}
@@ -217,21 +219,24 @@ function ImageCanvas() {
 }
 
 export function CanvasWorkspace() {
-  const { stage, dieline, zoom, setZoom, setPan, pan, selectedTool } = useProjectStore();
-  const showDieline = stage >= 4 && Boolean(dieline);
+  const { stage, dieline, zoom, setZoom, setPan, pan, selectedTool, setTool } = useProjectStore();
+  const [view, setView] = useState<"image" | "dieline" | "preview">("dieline");
+  const [showGrid, setShowGrid] = useState(true);
+  const activeView = !dieline || stage < 4 ? "image" : view;
+  const showDieline = activeView !== "image" && Boolean(dieline);
 
   return (
     <main className="workspace" aria-label="Package analysis and dieline workspace">
       <div className="workspace-toolbar">
         <div className="tool-group" aria-label="Workspace tools">
-          <button className={selectedTool === "Select" ? "active" : ""} title="Select (V)"><MousePointer2 size={16} /></button>
-          <button title="Direct selection (A)"><Crosshair size={16} /></button>
-          <button title="Toggle grid"><Grid3X3 size={16} /></button>
+          <button className={selectedTool === "Select" ? "active" : ""} aria-pressed={selectedTool === "Select"} title="Select (V)" onClick={() => setTool("Select")}><MousePointer2 size={16} /></button>
+          <button className={selectedTool === "Direct select" ? "active" : ""} aria-pressed={selectedTool === "Direct select"} title="Direct selection (A)" onClick={() => setTool("Direct select")}><Crosshair size={16} /></button>
+          <button className={showGrid ? "active" : ""} aria-pressed={showGrid} title="Toggle grid" onClick={() => setShowGrid((value) => !value)}><Grid3X3 size={16} /></button>
         </div>
-        <div className="view-tabs" role="tablist">
-          <button className={!showDieline ? "active" : ""} role="tab">Image & detection</button>
-          <button className={showDieline ? "active" : ""} role="tab" disabled={!dieline}>Dieline editor</button>
-          <button role="tab" disabled={!dieline}>Print preview</button>
+        <div className="view-tabs" role="tablist" aria-label="Workspace view">
+          <button id="workspace-tab-image" className={activeView === "image" ? "active" : ""} role="tab" aria-selected={activeView === "image"} aria-controls="workspace-view" onClick={() => setView("image")}>Image & detection</button>
+          <button id="workspace-tab-dieline" className={activeView === "dieline" ? "active" : ""} role="tab" aria-selected={activeView === "dieline"} aria-controls="workspace-view" disabled={!dieline} onClick={() => setView("dieline")}>Dieline editor</button>
+          <button id="workspace-tab-preview" className={activeView === "preview" ? "active" : ""} role="tab" aria-selected={activeView === "preview"} aria-controls="workspace-view" disabled={!dieline} onClick={() => setView("preview")}>Print preview</button>
         </div>
         <div className="zoom-controls">
           <button onClick={() => setZoom(zoom / 1.1)} title="Zoom out"><Minus size={15} /></button>
@@ -240,11 +245,10 @@ export function CanvasWorkspace() {
           <button onClick={() => { setZoom(1); setPan(0, 0); }} title="Fit to screen"><Maximize2 size={15} /></button>
         </div>
       </div>
-      <div className="workspace-body">
-        {showDieline ? <DielineCanvas /> : <ImageCanvas />}
+      <div id="workspace-view" className="workspace-body" role="tabpanel" aria-labelledby={`workspace-tab-${activeView}`}>
+        {showDieline ? <DielineCanvas showGrid={showGrid} preview={activeView === "preview"} /> : <ImageCanvas />}
       </div>
       {showDieline && <div className="canvas-coordinates">X {pan.x.toFixed(0)} · Y {pan.y.toFixed(0)} · 1:1 model</div>}
     </main>
   );
 }
-
