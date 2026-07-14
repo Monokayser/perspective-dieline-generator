@@ -4,7 +4,7 @@ Local-first software for turning a perspective package photograph into confirmed
 
 [Open the web app](https://monokayser.github.io/perspective-dieline-generator/) | [Windows v1.1.1 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.1/Perspective-Dieline-Generator-Setup-v1.1.1.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.1) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
 
-![Light-theme dieline editor](docs/screenshots/light-workbench.png)
+![Dark-theme dieline editor](docs/screenshots/dark-workbench.png)
 
 ## Features
 
