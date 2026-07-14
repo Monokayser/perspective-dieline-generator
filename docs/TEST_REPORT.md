@@ -19,7 +19,7 @@ Environment: Windows 11 x64, Node.js 22+, local Sites runtime, in-app Chromium b
 | Desktop web build | Pass | production Tauri frontend compiled |
 | Native Windows build | Pass | optimized x64 Tauri executable and offline-WebView2 NSIS bundle produced |
 | Windows 11 installer QA | Pass | silent isolated install, launch, responsive process, and clean uninstall |
-| Public Sites deployment | Pass | version 5 deployed and live workflow/export re-verified |
+| Public Sites deployment | Pass | version 7 deployed and live workflow/export re-verified |
 
 ## Functional browser workflow
 
@@ -39,7 +39,7 @@ Tests cover traversal attempts, extreme compression ratios, malformed project ge
 
 The final v1.0.1 Windows build completed in 842.1 seconds and produced an 18,168,832-byte application plus a 213,244,664-byte NSIS installer containing the offline WebView2 runtime. File and product version metadata both report 1.0.1. The QA installer returned exit code 0, installed the application and uninstaller to an isolated per-user location, launched one responsive process at approximately 35.6 MB working set, and uninstalled with exit code 0. A user-data sentinel outside the install directory was preserved. Tauri capability validation confirms that only read/write commands for dialog-selected files are enabled; the dialog supplies runtime scope for the exact selected path.
 
-Windows Graphics Capture could not snapshot the Tauri window on this host (`0x80004002: No such interface supported`), so visible installed-window capture is explicitly unverified. Browser and desktop-web surfaces were visually verified separately. The QA executable and installer are unsigned by design; the release script correctly blocks them from production packaging without `-AllowUnsigned`.
+Windows Graphics Capture could not snapshot the Tauri window on this host (`0x80004002: No such interface supported`), so visible installed-window capture is explicitly unverified. Browser and desktop-web surfaces were visually verified separately. The executable and installer are unsigned because no trusted Authenticode certificate was available; the release script correctly blocks them from production packaging without `-AllowUnsigned`. They are suitable only for a clearly labeled GitHub pre-release until a trusted certificate is supplied.
 
 Unsigned v1.0.1 QA artifact hashes (not production release hashes):
 

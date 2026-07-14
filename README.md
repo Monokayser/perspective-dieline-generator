@@ -2,7 +2,7 @@
 
 Local-first software for turning a perspective package photograph into confirmed measurements and an editable, 1:1 vector dieline. The same React/TypeScript workbench runs as a public Sites web app and a Tauri 2 Windows desktop app.
 
-[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) · [User guide](docs/USER_GUIDE.md) · [Test report](docs/TEST_REPORT.md) · [Release notes](RELEASE_NOTES.md)
+[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.0.1 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.0.1/Perspective-Dieline-Generator-Setup-v1.0.1.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.0.1) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
 
 ![Validated print-preview workspace](docs/screenshots/print-preview.png)
 
@@ -25,6 +25,10 @@ Images are never sent to an application backend. A single image cannot reveal hi
 In the Windows desktop app, **Export editable SVG** opens the native Windows Save dialog before anything is written. Choose any available drive or folder, edit the suggested filename, then select **Save** or **Cancel**. The app preserves the `.svg` extension, reports the final selected path, relies on the Windows overwrite confirmation for duplicate names, and gives repair guidance for permission, missing-folder, locked-file, invalid-path, and disk-space failures. Cancelling writes no file.
 
 The web app uses the browser's download behavior because websites cannot request unrestricted filesystem paths. Use the Windows build when an exact PC destination is required.
+
+## Current Windows release status
+
+The public v1.0.1 Windows package is an **unsigned pre-release** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. A signed production release remains gated on a trusted certificate.
 
 ## Development
 
