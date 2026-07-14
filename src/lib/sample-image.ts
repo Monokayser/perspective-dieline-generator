@@ -49,10 +49,10 @@ export const createSamplePackageImage = () => {
   context.stroke();
 
   context.fillStyle = "rgba(255,255,255,0.82)";
-  context.font = "700 58px Inter, Arial, sans-serif";
+  context.font = '700 58px "Inter Variable", "Segoe UI", Arial, sans-serif';
   context.fillText("SAMPLE", 382, 460);
-  context.font = "500 26px Inter, Arial, sans-serif";
-  context.fillText("80 × 120 × 35 mm", 382, 506);
+  context.font = '500 26px "Inter Variable", "Segoe UI", Arial, sans-serif';
+  context.fillText("80 x 120 x 35 mm", 382, 506);
   return canvas.toDataURL("image/png");
 };
 

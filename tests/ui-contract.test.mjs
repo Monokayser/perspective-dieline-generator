@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const cssUrl = new URL("../src/styles/globals.css", import.meta.url);
+const sampleImageUrl = new URL("../src/lib/sample-image.ts", import.meta.url);
 
 test("typography and compact layouts retain robust cross-platform fallbacks", async () => {
   const css = await readFile(cssUrl, "utf8");
@@ -41,4 +42,10 @@ test("application mark and dieline panels use explicit theme-aware tokens", asyn
   ]) {
     assert.match(css, new RegExp(`${token}:`));
   }
+});
+
+test("sample-image typography uses the self-hosted variable font with system fallbacks", async () => {
+  const source = await readFile(sampleImageUrl, "utf8");
+  assert.match(source, /"Inter Variable", "Segoe UI", Arial, sans-serif/);
+  assert.doesNotMatch(source, /px Inter, Arial, sans-serif/);
 });

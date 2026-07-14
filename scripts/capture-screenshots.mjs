@@ -16,6 +16,7 @@ try {
   const page = await context.newPage();
   await page.addInitScript(() => localStorage.setItem("pdg-onboarding-complete", "true"));
   await page.goto(baseURL);
+  await page.evaluate(() => document.fonts.ready);
   await page.getByRole("button", { name: /Load guided sample project/i }).click();
   await page.getByRole("button", { name: /Rerun local analysis/i }).waitFor({ timeout: 60_000 });
   await page.screenshot({ path: join(output, "analysis-workspace.png"), fullPage: true });
