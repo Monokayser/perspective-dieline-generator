@@ -34,7 +34,7 @@ Remove-Item Env:PDG_AUTHENTICODE_PFX
 
 Tauri produces the NSIS setup below `src-tauri/target/release/bundle/nsis/`. The installer embeds the offline WebView2 bootstrapper, installs per-user, creates shortcuts and uninstall metadata, and associates `.pdgproj`. Release output contains:
 
-- `Perspective-Dieline-Generator-Setup-v1.0.0.exe`
+- `Perspective-Dieline-Generator-Setup-v1.0.1.exe`
 - portable ZIP with the signed executable and fixed runtime resources
 - sample pack
 - SHA-256 checksums

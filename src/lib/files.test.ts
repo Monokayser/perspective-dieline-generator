@@ -44,6 +44,38 @@ describe("native Windows project files", () => {
     expect(result.path).toBe(path);
   });
 
+  it("preserves an edited filename and adds the required export extension", async () => {
+    const selectedPath = "D:\\Client exports\\renamed-carton";
+    desktopMocks.save.mockResolvedValue(selectedPath);
+    const result = await tauriFileSaveAdapter.save(new Blob(["<svg />"]), "carton.svg", "Editable SVG dieline");
+    expect(desktopMocks.writeFile).toHaveBeenCalledWith(`${selectedPath}.svg`, expect.any(Uint8Array));
+    expect(result).toMatchObject({
+      filename: "renamed-carton.svg",
+      path: `${selectedPath}.svg`,
+      cancelled: false,
+    });
+  });
+
+  it("treats Save dialog cancellation as a clean no-op", async () => {
+    desktopMocks.save.mockResolvedValue(null);
+    const result = await tauriFileSaveAdapter.save(new Blob(["<svg />"]), "carton.svg", "Editable SVG dieline");
+    expect(desktopMocks.writeFile).not.toHaveBeenCalled();
+    expect(result.cancelled).toBe(true);
+  });
+
+  it("rejects invalid remembered paths before writing", async () => {
+    await expect(tauriFileSaveAdapter.save(new Blob(["project"]), "carton.pdgproj", "Project", { targetPath: "\0" }))
+      .rejects.toThrow(/invalid/i);
+    expect(desktopMocks.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("turns Windows permission failures into repair guidance", async () => {
+    desktopMocks.save.mockResolvedValue("C:\\Protected\\carton.svg");
+    desktopMocks.writeFile.mockRejectedValue(new Error("Access is denied. (os error 5)"));
+    await expect(tauriFileSaveAdapter.save(new Blob(["<svg />"]), "carton.svg", "Editable SVG dieline"))
+      .rejects.toThrow(/choose another folder|permissions/i);
+  });
+
   it("reuses a previously chosen project path without reopening the dialog", async () => {
     const path = "C:\\Users\\Example\\Documents\\carton.pdgproj";
     const result = await tauriFileSaveAdapter.save(new Blob(["updated"]), "carton.pdgproj", "Project", { targetPath: path });

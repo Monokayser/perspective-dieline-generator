@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1 - 2026-07-14
+
+- Fixed Windows SVG export to always open the native Save dialog with drive, folder, and editable filename selection.
+- Preserved the required export extension and reported the actual filename selected by the user.
+- Added clean cancellation handling and actionable Windows errors for invalid paths, denied permissions, duplicate/locked files, missing folders, and full drives.
+- Expanded native save and export pipeline coverage and re-ran the full web and desktop release gates.
+
 ## 1.0.0 — 2026-07-14
 
 - Added the eight-stage local-first reconstruction workflow and eight template/custom modes.

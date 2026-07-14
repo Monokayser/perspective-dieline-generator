@@ -9,7 +9,7 @@ Environment: Windows 11 x64, Node.js 22+, local Sites runtime, in-app Chromium b
 | --- | --- | --- |
 | TypeScript | Pass | `tsc --noEmit` |
 | Lint | Pass | zero warnings with `--max-warnings=0` |
-| Unit/property tests | Pass | 40 tests across 5 files, including native picker/read/write path behavior |
+| Unit/property tests | Pass | 44 tests across 5 files, including native picker/read/write path behavior |
 | Coverage | Pass | 72.98% statements, 77.50% lines |
 | Sites build and render | Pass | local-first boot shell and metadata assertions |
 | Dependency audit | Pass | zero advisories at low threshold |
@@ -37,15 +37,15 @@ Tests cover traversal attempts, extreme compression ratios, malformed project ge
 
 ## Windows package QA
 
-The final permission-corrected Windows build completed in 424.2 seconds and produced an 18,168,320-byte application plus a 213,241,186-byte NSIS installer containing the offline WebView2 runtime. The QA installer returned exit code 0, installed the application and uninstaller to an isolated per-user location, launched one responsive application process, and uninstalled with exit code 0. The test location no longer existed afterward. Tauri capability validation confirms that only read/write commands for dialog-selected files were added; the dialog supplies the runtime scope for the exact selected path.
+The final v1.0.1 Windows build completed in 842.1 seconds and produced an 18,168,832-byte application plus a 213,244,664-byte NSIS installer containing the offline WebView2 runtime. File and product version metadata both report 1.0.1. The QA installer returned exit code 0, installed the application and uninstaller to an isolated per-user location, launched one responsive process at approximately 35.6 MB working set, and uninstalled with exit code 0. A user-data sentinel outside the install directory was preserved. Tauri capability validation confirms that only read/write commands for dialog-selected files are enabled; the dialog supplies runtime scope for the exact selected path.
 
 Windows Graphics Capture could not snapshot the Tauri window on this host (`0x80004002: No such interface supported`), so visible installed-window capture is explicitly unverified. Browser and desktop-web surfaces were visually verified separately. The QA executable and installer are unsigned by design; the release script correctly blocks them from production packaging without `-AllowUnsigned`.
 
-Unsigned QA artifact hashes (not production release hashes):
+Unsigned v1.0.1 QA artifact hashes (not production release hashes):
 
-- Installer: `61072519428b78a55c0b64f5b86c40b47b7be09b981e1f238f002bb51eac160c`
-- Portable ZIP: `d87e1400780f443a6147018c1dd2f8cda13a8b01aafb05c436cc6fdfe78e9338`
-- Sample pack: `2a34ed37676f8b3330277ff2f1d099c328dc60ebfbb7f4d3420ca67ea96baccb`
+- Installer: `309f51d493da9887936077b6a20a5dbda60c5bcf093c376629c0f0f122f4c843`
+- Portable ZIP: `aeb6ca4bcb80c98f79632cf1826f8efeefe303237a23e7063b001c60c26ef71e`
+- Sample pack: `e1b30dfcef87ae23dae69bd3f1936d1ecb37ab00b616e8481d053e45fd2a2770`
 
 ## External verification still required
 

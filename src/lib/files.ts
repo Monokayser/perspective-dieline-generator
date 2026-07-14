@@ -9,6 +9,36 @@ export const isDesktopApp = () => typeof window !== "undefined" && "__TAURI_INTE
 
 const extensionOf = (filename: string) => filename.includes(".") ? filename.split(".").pop()?.toLowerCase() ?? "" : "";
 
+const filenameFromPath = (path: string, fallback: string) => path.split(/[\\/]/).pop() || fallback;
+
+const ensureExtension = (path: string, extension: string) => {
+  if (!path.trim() || path.includes("\0")) {
+    throw new Error("The selected save path is invalid. Choose another folder or filename.");
+  }
+  if (!extension || path.toLowerCase().endsWith(`.${extension}`)) return path;
+  return `${path.replace(/\.$/, "")}.${extension}`;
+};
+
+const saveError = (error: unknown, path: string) => {
+  const detail = error instanceof Error ? error.message : String(error);
+  const normalised = detail.toLowerCase();
+  const name = filenameFromPath(path, "the export");
+
+  if (/access.*denied|permission|not permitted|os error 5/.test(normalised)) {
+    return new Error(`Windows denied permission to save ${name}. Choose another folder or check its permissions.`);
+  }
+  if (/already exists|os error (80|183)|being used by another process|sharing violation/.test(normalised)) {
+    return new Error(`${name} already exists or is open in another application. Close it or choose another filename.`);
+  }
+  if (/no such file|cannot find|not found|os error (2|3)/.test(normalised)) {
+    return new Error("The selected folder is no longer available. Choose another save location.");
+  }
+  if (/no space|disk full|os error 112/.test(normalised)) {
+    return new Error("The selected drive does not have enough free space for this export.");
+  }
+  return new Error(`Could not save ${name}. ${detail || "Choose another folder or filename and try again."}`);
+};
+
 const browserDownload = (blob: Blob, filename: string): SaveResult => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -33,18 +63,23 @@ export const tauriFileSaveAdapter: FileSaveAdapter = {
       import("@tauri-apps/plugin-dialog"),
       import("@tauri-apps/plugin-fs"),
     ]);
-    if (options?.targetPath) {
-      await writeFile(options.targetPath, new Uint8Array(await blob.arrayBuffer()));
-      return { filename, destination: "desktop", cancelled: false, path: options.targetPath };
-    }
     const extension = extensionOf(filename);
-    const path = await save({
-      defaultPath: filename,
-      filters: extension ? [{ name: description, extensions: [extension] }] : undefined,
-    });
-    if (!path) return { filename, destination: "desktop", cancelled: true };
-    await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-    return { filename, destination: "desktop", cancelled: false, path };
+    let path = options?.targetPath;
+    if (!path) {
+      path = await save({
+        defaultPath: filename,
+        filters: extension ? [{ name: description, extensions: [extension] }] : undefined,
+      }) ?? undefined;
+      if (!path) return { filename, destination: "desktop", cancelled: true };
+    }
+
+    const finalPath = ensureExtension(path, extension);
+    try {
+      await writeFile(finalPath, new Uint8Array(await blob.arrayBuffer()));
+    } catch (error) {
+      throw saveError(error, finalPath);
+    }
+    return { filename: filenameFromPath(finalPath, filename), destination: "desktop", cancelled: false, path: finalPath };
   },
 };
 

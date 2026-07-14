@@ -1,6 +1,6 @@
 [package]
 name = "perspective-dieline-generator"
-version = "1.0.0"
+version = "1.0.1"
 description = "Local-first perspective package image to editable 2D dieline generator"
 authors = ["Perspective Dieline Generator"]
 edition = "2021"

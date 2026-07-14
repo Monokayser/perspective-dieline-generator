@@ -12,3 +12,5 @@
 Shortcuts: `V` select, `A` direct select, `Ctrl+Z` undo, `Ctrl+Y` redo, `Ctrl+S` save the current project, `Ctrl+Shift+S` choose a new project filename/location, `+/-` zoom, `0` fit, `Delete` remove selection, `Esc` close a drawer.
 
 Web saves use explicit downloads. IndexedDB stores recovery only. In the Windows app, the first **Save project** action opens the native Save dialog, later saves reuse that project path, and **Save as** chooses another filename or folder. Every SVG, PDF, DXF, PNG, JPG, JSON, and `.pdgproj` export opens the Windows Save dialog so the destination stays under user control. Uninstallation does not remove user-selected project files.
+
+For SVG, choose any available drive or folder, edit the suggested name, then select **Save**. Windows asks before replacing an existing file. Selecting **Cancel** writes nothing. If the destination is invalid, missing, read-only, full, permission-restricted, or the existing file is locked, the app keeps the project open and shows a specific recovery action; choose another destination or resolve the reported Windows condition and retry.

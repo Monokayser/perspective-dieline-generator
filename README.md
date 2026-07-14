@@ -6,7 +6,7 @@ Local-first software for turning a perspective package photograph into confirmed
 
 ![Validated print-preview workspace](docs/screenshots/print-preview.png)
 
-## What ships in v1
+## What ships in v1.0.1
 
 - Eight-stage workflow: Upload, Detect, Correct, Measure, Generate, Edit, Validate, Export.
 - Cancellable local worker analysis with lazy OpenCV.js loading, deterministic fallback analysis, normalized annotations, quality warnings, confidence scoring, previews, and quadrilateral rectification.
@@ -19,6 +19,12 @@ Local-first software for turning a perspective package photograph into confirmed
 - Responsive light/dark UI with keyboard support, focus-managed drawers/dialogs, forced-colors, increased-contrast, reduced-motion, safe-area, and screen-reader behavior.
 
 Images are never sent to an application backend. A single image cannot reveal hidden dimensions, so inferred proportions never become confirmed manufacturing measurements automatically.
+
+## SVG Save As on Windows
+
+In the Windows desktop app, **Export editable SVG** opens the native Windows Save dialog before anything is written. Choose any available drive or folder, edit the suggested filename, then select **Save** or **Cancel**. The app preserves the `.svg` extension, reports the final selected path, relies on the Windows overwrite confirmation for duplicate names, and gives repair guidance for permission, missing-folder, locked-file, invalid-path, and disk-space failures. Cancelling writes no file.
+
+The web app uses the browser's download behavior because websites cannot request unrestricted filesystem paths. Use the Windows build when an exact PC destination is required.
 
 ## Development
 
