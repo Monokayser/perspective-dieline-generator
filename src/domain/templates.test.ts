@@ -21,7 +21,7 @@ describe("parametric dieline generators", () => {
       expect(issues.filter(({ severity }) => severity === "error")).toEqual([]);
       expect(svg).toContain('width="');
       expect(svg).toContain('mm" height="');
-      expect(svg).toContain('viewBox="0 0 ');
+      expect(svg).toContain(`width="${model.artboard.widthMm.toFixed(4)}mm" height="${model.artboard.heightMm.toFixed(4)}mm" viewBox="0 0 ${model.artboard.widthMm.toFixed(4)} ${model.artboard.heightMm.toFixed(4)}"`);
       for (const group of requiredGroups) expect(svg).toContain(`id="${group}"`);
     },
   );

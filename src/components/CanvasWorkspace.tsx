@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
 import { Focus, Grid3X3, Maximize2, Minus, Plus, ScanLine } from "lucide-react";
 import { confidenceLabel, type PanelGeometry, type Point, type VectorPath } from "../domain/types";
+import { formatMeasurement } from "../domain/units";
+import { calculateArtboardFit, formatAspectRatio } from "../lib/artboard-preview";
 import { prepareImage } from "../lib/prepare-image";
 import { useProjectStore } from "../store/project-store";
 
@@ -33,6 +35,7 @@ const layerForKind = (kind: VectorPath["kind"]) => ({
 function DielineCanvas({ showGrid = true, preview = false }: { showGrid?: boolean; preview?: boolean }) {
   const {
     dieline,
+    unit,
     zoom,
     pan,
     selectedObjectId,
@@ -41,11 +44,33 @@ function DielineCanvas({ showGrid = true, preview = false }: { showGrid?: boolea
     selectObject,
   } = useProjectStore();
   const dragging = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const [surfaceSize, setSurfaceSize] = useState<{ width: number; height: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return undefined;
+    const updateSize = () => setSurfaceSize({ width: surface.clientWidth, height: surface.clientHeight });
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(surface);
+    return () => observer.disconnect();
+  }, []);
 
   if (!dieline) return null;
   const visibleLayers = new Set(dieline.layers.filter((layer) => layer.visible).map((layer) => layer.id));
   const viewWidth = dieline.artboard.widthMm;
   const viewHeight = dieline.artboard.heightMm;
+  const surfacePadding = preview ? 48 : 38;
+  const artboardFit = surfaceSize && calculateArtboardFit({
+    artboardWidth: viewWidth,
+    artboardHeight: viewHeight,
+    viewportWidth: surfaceSize.width,
+    viewportHeight: surfaceSize.height,
+    padding: surfacePadding,
+    maxWidth: 1050,
+    maxHeight: 760,
+  });
 
   const onWheel = (event: WheelEvent<SVGSVGElement>) => {
     event.preventDefault();
@@ -64,17 +89,25 @@ function DielineCanvas({ showGrid = true, preview = false }: { showGrid?: boolea
   };
 
   return (
-    <div className={`canvas-scroll dieline-surface${preview ? " print-preview-surface" : ""}`}>
+    <div ref={surfaceRef} className={`canvas-scroll dieline-surface${preview ? " print-preview-surface" : ""}`}>
       <svg
         className={`dieline-canvas${preview ? " print-preview-canvas" : ""}`}
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        data-artboard-width={viewWidth}
+        data-artboard-height={viewHeight}
+        data-artboard-ratio={artboardFit ? artboardFit.ratio.toFixed(8) : undefined}
         aria-label="Editable dieline vector workspace"
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={() => { dragging.current = null; }}
         onContextMenu={(event) => event.preventDefault()}
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+        style={{
+          width: artboardFit ? `${artboardFit.width}px` : undefined,
+          height: artboardFit ? `${artboardFit.height}px` : undefined,
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+        }}
       >
         <defs>
           <pattern id="minor-grid" width="5" height="5" patternUnits="userSpaceOnUse">
@@ -113,6 +146,10 @@ function DielineCanvas({ showGrid = true, preview = false }: { showGrid?: boolea
           return panel.points.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r={1.6} className="selection-handle" />);
         })()}
       </svg>
+      <div className="artboard-preview-meta">
+        <span>Artboard {formatMeasurement(viewWidth, unit, 1)} x {formatMeasurement(viewHeight, unit, 1)}</span>
+        <span>{formatAspectRatio(viewWidth, viewHeight)} ratio - fitted preview</span>
+      </div>
     </div>
   );
 }
@@ -248,13 +285,13 @@ export function CanvasWorkspace() {
           <button onClick={() => setZoom(zoom / 1.1)} title="Zoom out"><Minus size={15} /></button>
           <span>{Math.round(zoom * 100)}%</span>
           <button onClick={() => setZoom(zoom * 1.1)} title="Zoom in"><Plus size={15} /></button>
-          <button onClick={() => { setZoom(1); setPan(0, 0); }} title="Fit to screen"><Maximize2 size={15} /></button>
+          <button onClick={() => { setZoom(1); setPan(0, 0); }} title="Fit artboard" aria-label="Fit artboard"><Maximize2 size={15} /></button>
         </div>
       </div>
       <div id="workspace-view" className="workspace-body" role="tabpanel" aria-labelledby={`workspace-tab-${activeView}`}>
         {showDieline ? <DielineCanvas showGrid={showGrid} preview={activeView === "preview"} /> : <ImageCanvas />}
       </div>
-      {showDieline && <div className="canvas-coordinates">X {pan.x.toFixed(0)} · Y {pan.y.toFixed(0)} · 1:1 model</div>}
+      {showDieline && <div className="canvas-coordinates">X {pan.x.toFixed(0)} - Y {pan.y.toFixed(0)} - View {Math.round(zoom * 100)}%</div>}
     </main>
   );
 }

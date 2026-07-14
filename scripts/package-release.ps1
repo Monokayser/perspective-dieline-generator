@@ -1,4 +1,4 @@
-param([string]$Version = "1.1.1", [switch]$AllowUnsigned)
+param([string]$Version = "1.1.2", [switch]$AllowUnsigned)
 
 $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")

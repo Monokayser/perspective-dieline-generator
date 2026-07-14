@@ -311,7 +311,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     dimensions: Object.fromEntries(Object.entries(state.dimensions).map(([key, measurement]) => [key, { ...measurement, provenance: "confirmed", confidence: 1 }])) as unknown as PackageDimensions,
     maxPhase: furthestPhase(state.maxPhase, "design"),
     phase: "design",
-    notice: { id: crypto.randomUUID(), tone: "success", message: "Measurements confirmed. The template can now generate at 1:1 scale." },
+    notice: { id: crypto.randomUUID(), tone: "success", message: "Measurements confirmed. The template can now generate production geometry." },
     dirty: true,
   })),
   generate: () => {

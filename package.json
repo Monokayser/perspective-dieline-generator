@@ -1,7 +1,8 @@
 {
   "name": "perspective-dieline-generator",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Local-first perspective package analysis and editable 1:1 dieline generation.",
+  "author": "S. M. Monowar Kayser",
   "license": "MIT",
   "homepage": "https://monokayser.github.io/perspective-dieline-generator/",
   "repository": "github:Monokayser/perspective-dieline-generator",

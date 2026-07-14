@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2 - 2026-07-15
+
+- Added consistent designer/developer attribution for S. M. Monowar Kayser to onboarding, Help/About, repository, web, package, Rust, and Windows metadata.
+- Replaced the clipped mobile CSS mark with a shared square SVG component used by the top bar and onboarding.
+- Preserved theme-aware face contrast while making compact and large marks scale independently at high device-pixel ratios.
+- Replaced the legacy Windows icon with a high-contrast package-engineering mark generated for shortcut, taskbar, installer, and high-DPI sizes.
+- Made editor and print-preview canvases preserve the generated artboard aspect ratio and display fitted-view metadata.
+- Clarified the difference between fitted screen zoom and physical 1:1 production output.
+- Expanded SVG dimension, mark geometry, responsive, high-density, and complete export regression coverage.
+- Updated screenshots, documentation, Windows artifacts, checksums, and public release links for v1.1.2.
+
 ## 1.1.1 - 2026-07-15
 
 - Replaced the low-contrast light-theme application mark with adaptive badge, face, border, and shadow tokens shared by the top bar and onboarding.

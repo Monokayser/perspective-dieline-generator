@@ -14,10 +14,12 @@ const contrast = (a: number[], b: number[]) => {
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 };
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem("pdg-onboarding-complete", "true");
-  });
+test.beforeEach(async ({ page }, testInfo) => {
+  const showOnboarding = testInfo.title.includes("large onboarding mark");
+  await page.addInitScript((show) => {
+    if (show) window.localStorage.removeItem("pdg-onboarding-complete");
+    else window.localStorage.setItem("pdg-onboarding-complete", "true");
+  }, showOnboarding);
   await page.goto("/");
 });
 
@@ -44,6 +46,10 @@ test("renders the five-phase workbench without horizontal overflow", async ({ pa
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   expect(layout.fontFamily).toMatch(/Inter|system-ui|Segoe UI/);
   expect(layout.fontSize).toBeGreaterThanOrEqual(14);
+
+  await page.getByTitle("Help and shortcuts").click();
+  await expect(page.getByRole("dialog", { name: "Help and about" })).toContainText("Designed and developed by S. M. Monowar Kayser");
+  await page.getByRole("button", { name: "Close help and about" }).click();
 });
 
 test("has no serious automated accessibility violations", async ({ page }, testInfo) => {
@@ -67,19 +73,63 @@ test("application mark keeps non-text contrast in both themes", async ({ page })
       const parse = (value: string) => value.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [];
       const markStyle = getComputedStyle(mark);
       const parentStyle = getComputedStyle(mark.parentElement!);
-      const faces = [...mark.querySelectorAll("span")].map((face) => parse(getComputedStyle(face).backgroundColor));
+      const svg = mark.querySelector("svg")!;
+      const viewBox = svg.viewBox.baseVal;
+      const faces = [...mark.querySelectorAll<SVGGraphicsElement>("[data-app-mark-face]")].map((face) => {
+        const bounds = face.getBBox();
+        return {
+          color: parse(getComputedStyle(face).fill),
+          bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
+        };
+      });
       return {
         background: parse(markStyle.backgroundColor),
         border: parse(markStyle.borderTopColor),
         surrounding: parse(parentStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? getComputedStyle(document.querySelector(".topbar")!).backgroundColor : parentStyle.backgroundColor),
         faces,
         bounds: mark.getBoundingClientRect().toJSON(),
+        svgBounds: svg.getBoundingClientRect().toJSON(),
+        viewBox: { x: viewBox.x, y: viewBox.y, width: viewBox.width, height: viewBox.height },
       };
     });
     expect(colors.bounds.width).toBeGreaterThanOrEqual(30);
     expect(colors.bounds.height).toBeGreaterThanOrEqual(30);
+    expect(Math.abs(colors.bounds.width - colors.bounds.height)).toBeLessThan(0.05);
+    expect(Math.abs(colors.svgBounds.width - colors.svgBounds.height)).toBeLessThan(0.05);
+    expect(colors.viewBox).toEqual({ x: 0, y: 0, width: 32, height: 32 });
     expect(Math.max(contrast(colors.background, colors.surrounding), contrast(colors.border, colors.surrounding))).toBeGreaterThanOrEqual(3);
-    for (const face of colors.faces) expect(contrast(face, colors.background)).toBeGreaterThanOrEqual(3);
+    for (const face of colors.faces) {
+      expect(contrast(face.color, colors.background)).toBeGreaterThanOrEqual(3);
+      expect(face.bounds.x).toBeGreaterThanOrEqual(0);
+      expect(face.bounds.y).toBeGreaterThanOrEqual(0);
+      expect(face.bounds.x + face.bounds.width).toBeLessThanOrEqual(32);
+      expect(face.bounds.y + face.bounds.height).toBeLessThanOrEqual(32);
+    }
+  }
+});
+
+test("large onboarding mark remains square on a high-density phone", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-phone");
+  const mark = page.locator(".onboarding-card .app-mark.large");
+  await expect(mark).toBeVisible();
+  await expect(page.getByText("Designed and developed by S. M. Monowar Kayser")).toBeVisible();
+  const geometry = await mark.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const svg = element.querySelector("svg")!;
+    const faceBounds = [...svg.querySelectorAll<SVGGraphicsElement>("[data-app-mark-face]")].map((face) => {
+      const bounds = face.getBBox();
+      return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+    });
+    return { width: bounds.width, height: bounds.height, viewBox: svg.getAttribute("viewBox"), faceBounds };
+  });
+  expect(geometry.width).toBe(58);
+  expect(geometry.height).toBe(58);
+  expect(geometry.viewBox).toBe("0 0 32 32");
+  for (const face of geometry.faceBounds) {
+    expect(face.x).toBeGreaterThanOrEqual(0);
+    expect(face.y).toBeGreaterThanOrEqual(0);
+    expect(face.x + face.width).toBeLessThanOrEqual(32);
+    expect(face.y + face.height).toBeLessThanOrEqual(32);
   }
 });
 
@@ -98,8 +148,36 @@ test("completes sample analysis through SVG export", async ({ page }, testInfo) 
 
   await page.getByRole("button", { name: /Continue to Measure/i }).click();
   await page.getByRole("button", { name: /Confirm and continue/i }).click();
-  await page.getByRole("button", { name: /Generate 1:1 dieline/i }).click();
+  await page.getByRole("button", { name: /Generate dieline/i }).click();
   await expect(page.getByText(/0 errors.*0 warnings/i)).toBeVisible();
+
+  const editorCanvas = page.locator(".dieline-canvas");
+  await expect(editorCanvas).toBeVisible();
+  const artboard = await editorCanvas.evaluate((canvas) => {
+    const [, , width, height] = canvas.getAttribute("viewBox")!.split(" ").map(Number);
+    const bounds = canvas.getBoundingClientRect();
+    return {
+      width,
+      height,
+      displayedRatio: bounds.width / bounds.height,
+      modelRatio: width / height,
+      preserveAspectRatio: canvas.getAttribute("preserveAspectRatio"),
+    };
+  });
+  expect(artboard.preserveAspectRatio).toBe("xMidYMid meet");
+  expect(artboard.displayedRatio).toBeCloseTo(artboard.modelRatio, 3);
+  await expect(page.getByText(/ratio - fitted preview/i)).toBeVisible();
+
+  await page.getByRole("tab", { name: /Print preview/i }).click();
+  const printCanvas = page.locator(".print-preview-canvas");
+  await expect(printCanvas).toBeVisible();
+  const printRatio = await printCanvas.evaluate((canvas) => {
+    const [, , width, height] = canvas.getAttribute("viewBox")!.split(" ").map(Number);
+    const bounds = canvas.getBoundingClientRect();
+    return { displayed: bounds.width / bounds.height, model: width / height };
+  });
+  expect(printRatio.displayed).toBeCloseTo(printRatio.model, 3);
+  await page.getByRole("tab", { name: /Dieline editor/i }).click();
 
   const lightMode = page.getByTitle("Switch to light mode");
   if (await lightMode.count()) await lightMode.click();

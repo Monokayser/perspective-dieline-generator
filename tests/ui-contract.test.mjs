@@ -4,6 +4,9 @@ import test from "node:test";
 
 const cssUrl = new URL("../src/styles/globals.css", import.meta.url);
 const sampleImageUrl = new URL("../src/lib/sample-image.ts", import.meta.url);
+const onboardingUrl = new URL("../src/components/Onboarding.tsx", import.meta.url);
+const topBarUrl = new URL("../src/components/TopBar.tsx", import.meta.url);
+const htmlUrl = new URL("../desktop/index.html", import.meta.url);
 
 test("typography and compact layouts retain robust cross-platform fallbacks", async () => {
   const css = await readFile(cssUrl, "utf8");
@@ -48,4 +51,16 @@ test("sample-image typography uses the self-hosted variable font with system fal
   const source = await readFile(sampleImageUrl, "utf8");
   assert.match(source, /"Inter Variable", "Segoe UI", Arial, sans-serif/);
   assert.doesNotMatch(source, /px Inter, Arial, sans-serif/);
+});
+
+test("creator attribution is present in product and web surfaces", async () => {
+  const [onboarding, topBar, html, packageJson] = await Promise.all([
+    readFile(onboardingUrl, "utf8"),
+    readFile(topBarUrl, "utf8"),
+    readFile(htmlUrl, "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ]);
+  for (const source of [onboarding, topBar, html, packageJson]) {
+    assert.match(source, /S\. M\. Monowar Kayser/);
+  }
 });

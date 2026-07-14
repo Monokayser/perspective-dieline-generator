@@ -30,20 +30,20 @@ Install Visual Studio 2022 Build Tools with the Desktop C++ workload. Run:
 
 ```powershell
 npm run desktop:build
-powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 -Version 1.1.1 -AllowUnsigned
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 -Version 1.1.2 -AllowUnsigned
 ```
 
 Tauri builds a current-user NSIS installer with offline WebView2, shortcuts, uninstall metadata, application/version icons, and `.pdgproj` association. The packaging script creates:
 
-- `Perspective-Dieline-Generator-Setup-v1.1.1.exe`
-- `Perspective-Dieline-Generator-Portable-v1.1.1-win-x64.zip`
-- `Perspective-Dieline-Generator-Sample-Pack-v1.1.1.zip`
+- `Perspective-Dieline-Generator-Setup-v1.1.2.exe`
+- `Perspective-Dieline-Generator-Portable-v1.1.2-win-x64.zip`
+- `Perspective-Dieline-Generator-Sample-Pack-v1.1.2.zip`
 - `SHA256SUMS.txt`
 
 Unsigned publication is allowed only when the release prominently states the SmartScreen limitation and supplies verified checksums. For Authenticode instructions, see `scripts/build-signed-windows.ps1`; signing credentials must remain outside the repository.
 
 ## Verification and release
 
-Verify install, launch, native project dialogs, per-export Save As, extension preservation, cancellation, permission/path failures, clean uninstall, version metadata, icon resources, and checksums. Then push the validated commit, tag `v1.1.1`, create the GitHub Latest release, attach the installer, portable ZIP, sample pack, checksums, screenshots, release notes, and test report, and re-download each asset to verify size and SHA-256.
+Verify install, launch, native project dialogs, per-export Save As, extension preservation, cancellation, permission/path failures, clean uninstall, version metadata, icon resources, and checksums. Then push the validated commit, tag `v1.1.2`, create the GitHub Latest release, attach the installer, portable ZIP, sample pack, checksums, screenshots, release notes, and test report, and re-download each asset to verify size and SHA-256.
 
 After GitHub Pages is confirmed publicly accessible, restrict the former hosted project to owner-only access and verify it no longer exposes the application anonymously.

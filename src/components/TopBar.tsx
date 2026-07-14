@@ -6,6 +6,7 @@ import { openProjectArchive } from "../domain/project";
 import { chooseDesktopProjectFile, isDesktopApp } from "../lib/files";
 import { saveCurrentProject } from "../lib/project-actions";
 import { useProjectStore } from "../store/project-store";
+import { AppMark } from "./AppMark";
 
 export function TopBar() {
   const openInput = useRef<HTMLInputElement | null>(null);
@@ -88,7 +89,7 @@ export function TopBar() {
     <>
       <header className="topbar">
         <div className="brand-block">
-          <div className="app-mark" aria-hidden="true"><span /><span /><span /></div>
+          <AppMark />
           <div className="brand-copy"><strong>Perspective Dieline</strong><span>Package engineering workspace</span></div>
         </div>
         <div className="project-title-wrap">
@@ -113,7 +114,7 @@ export function TopBar() {
       {helpOpen && (
         <div className="modal-backdrop" role="presentation" onPointerDown={() => setHelpOpen(false)}>
           <section ref={helpDialog} className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onPointerDown={(event) => event.stopPropagation()}>
-            <div className="modal-heading"><span><CircleHelp size={19} /><strong id="help-title">Workspace guide</strong></span><button aria-label="Close workspace guide" onClick={() => setHelpOpen(false)}>×</button></div>
+            <div className="modal-heading"><span><CircleHelp size={19} /><strong id="help-title">Help and about</strong></span><button aria-label="Close help and about" onClick={() => setHelpOpen(false)}>x</button></div>
             <div className="help-grid">
               <div><b>1</b><span><strong>Upload and prepare</strong><p>Use a perspective JPG, PNG, or WEBP. Crop closely and improve edge contrast.</p></span></div>
               <div><b>2</b><span><strong>Detect and correct</strong><p>Automatic corners are candidates. Drag every uncertain point onto a real package edge.</p></span></div>
@@ -122,6 +123,10 @@ export function TopBar() {
             </div>
             <div className="shortcut-list"><span><kbd>Ctrl Z</kbd> Undo</span><span><kbd>Ctrl Y</kbd> Redo</span><span><kbd>Ctrl S</kbd> Save project</span><span><kbd>Ctrl Shift S</kbd> Save as</span><span><kbd>+</kbd> Zoom in</span><span><kbd>0</kbd> Fit</span></div>
             <div className="limitation-note"><strong>Accuracy note</strong><p>A single photograph cannot reveal hidden measurements. Estimated values are never treated as manufacturing dimensions until you confirm them.</p></div>
+            <div className="product-credit">
+              <AppMark />
+              <span><strong>Perspective Dieline Generator</strong><small>Designed and developed by <b>S. M. Monowar Kayser</b></small></span>
+            </div>
           </section>
         </div>
       )}

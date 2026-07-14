@@ -135,7 +135,7 @@ export const createProjectArchive = (document: ProjectDocument, sourceImageDataU
   const manifest = {
     format: "pdgproj",
     schemaVersion: 1,
-    createdBy: "Perspective Dieline Generator 1.1.1",
+    createdBy: "Perspective Dieline Generator 1.1.2",
     files: Object.keys(files),
   };
   files["project.json"] = strToU8(JSON.stringify(cleanDocument, null, 2));

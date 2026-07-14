@@ -2,7 +2,11 @@
 
 Local-first software for turning a perspective package photograph into confirmed measurements and an editable 1:1 vector dieline. One React/TypeScript/Vite workbench powers both the GitHub Pages web app and the Tauri 2 Windows desktop app.
 
-[Open the web app](https://monokayser.github.io/perspective-dieline-generator/) | [Windows v1.1.1 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.1/Perspective-Dieline-Generator-Setup-v1.1.1.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.1) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
+**Designed and developed by S. M. Monowar Kayser.**
+
+[Open the web app](https://monokayser.github.io/perspective-dieline-generator/) | [Windows v1.1.2 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.2/Perspective-Dieline-Generator-Setup-v1.1.2.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.2) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
+
+**Windows EXE installer:** [Download Perspective Dieline Generator v1.1.2](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.2/Perspective-Dieline-Generator-Setup-v1.1.2.exe)
 
 ![Dark-theme dieline editor](docs/screenshots/dark-workbench.png)
 
@@ -15,6 +19,9 @@ Local-first software for turning a perspective package photograph into confirmed
 - Editable millimetre geometry, semantic layers, selection transforms, undo/redo, validation, and 1:1 output.
 - SVG as the primary format, with PDF, DXF, PNG, JPG, JSON, and versioned `.pdgproj` support.
 - Responsive dark and light themes with self-hosted Inter, platform font fallbacks, keyboard navigation, focus-managed drawers, forced colors, reduced motion, and 360 px support.
+- Scale-independent SVG application mark that remains square and unclipped on standard and high-density displays.
+- Professional high-DPI desktop icon shared by the executable, installer, shortcuts, and application metadata.
+- Aspect-correct editor and print previews with explicit artboard dimensions, ratio, and fitted-view labeling.
 - Native Windows Open, Save, and Save As dialogs. Every desktop export lets the user choose its drive, folder, and filename.
 
 Images are processed locally and are not sent to an application backend. A photograph cannot reveal hidden dimensions, so inferred proportions never become confirmed manufacturing measurements automatically.
@@ -27,9 +34,9 @@ The web app uses the browser download location because public websites cannot re
 
 ## Install and use
 
-Download the v1.1.1 installer from the [Latest release](https://github.com/Monokayser/perspective-dieline-generator/releases/latest). The installer includes the offline WebView2 runtime and installs per user. A portable ZIP and sample pack are also attached.
+Download the v1.1.2 installer from the [Latest release](https://github.com/Monokayser/perspective-dieline-generator/releases/latest). The installer includes the offline WebView2 runtime and installs per user. A portable ZIP and sample pack are also attached.
 
-The v1.1.1 artifacts are **unsigned** because no trusted Authenticode certificate was supplied. Windows SmartScreen may warn. Verify the downloaded file against `SHA256SUMS.txt`; no Authenticode claim is made for this release.
+The v1.1.2 artifacts are **unsigned** because no trusted Authenticode certificate was supplied. Windows SmartScreen may warn. Verify the downloaded file against `SHA256SUMS.txt`; no Authenticode claim is made for this release.
 
 ## Local development
 
@@ -73,6 +80,8 @@ Runtime dependencies are declared in `package.json` and `src-tauri/Cargo.toml`; 
 ## Screenshots
 
 ![Dark analysis workspace](docs/screenshots/analysis-workspace.png)
+
+![Light-theme dieline editor](docs/screenshots/light-workbench.png)
 
 ![Responsive 360 px workbench](docs/screenshots/mobile-workbench.png)
 

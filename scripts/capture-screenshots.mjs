@@ -23,7 +23,8 @@ try {
 
   await page.getByRole("button", { name: /Continue to Measure/i }).click();
   await page.getByRole("button", { name: /Confirm and continue/i }).click();
-  await page.getByRole("button", { name: /Generate 1:1 dieline/i }).click();
+  await page.getByRole("button", { name: /Generate dieline/i }).click();
+  await page.screenshot({ path: join(output, "dark-workbench.png"), fullPage: true });
   await page.getByRole("tab", { name: /Print preview/i }).click();
   await page.screenshot({ path: join(output, "print-preview.png"), fullPage: true });
 
@@ -35,6 +36,7 @@ try {
   const mobile = await browser.newContext({
     colorScheme: "dark",
     viewport: { width: 360, height: 800 },
+    deviceScaleFactor: 3,
   });
   const mobilePage = await mobile.newPage();
   await mobilePage.addInitScript(() => localStorage.setItem("pdg-onboarding-complete", "true"));

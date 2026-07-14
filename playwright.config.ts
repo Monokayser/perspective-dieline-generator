@@ -2,10 +2,10 @@ import { defineConfig } from "@playwright/test";
 
 const browsers = ["chromium", "firefox", "webkit"] as const;
 const viewports = [
-  { name: "phone", width: 360, height: 800 },
-  { name: "tablet", width: 768, height: 1024 },
-  { name: "desktop", width: 1440, height: 900 },
-  { name: "wide", width: 1920, height: 1080 },
+  { name: "phone", width: 360, height: 800, deviceScaleFactor: 3 },
+  { name: "tablet", width: 768, height: 1024, deviceScaleFactor: 2 },
+  { name: "desktop", width: 1440, height: 900, deviceScaleFactor: 1 },
+  { name: "wide", width: 1920, height: 1080, deviceScaleFactor: 1 },
 ];
 
 export default defineConfig({
@@ -30,9 +30,9 @@ export default defineConfig({
     timeout: 120_000,
   },
   projects: browsers.flatMap((browserName) =>
-    viewports.map(({ name, width, height }) => ({
+    viewports.map(({ name, width, height, deviceScaleFactor }) => ({
       name: `${browserName}-${name}`,
-      use: { browserName, viewport: { width, height } },
+      use: { browserName, viewport: { width, height }, deviceScaleFactor },
     })),
   ),
 });

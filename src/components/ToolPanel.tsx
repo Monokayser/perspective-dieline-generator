@@ -245,8 +245,8 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
         <section className="panel-section phase-summary">
           <div className="section-heading"><span><Box size={16} /> Design dieline</span><span className="section-step">05</span></div>
           <strong>{getTemplate(templateId).name}</strong>
-          <p>{dieline ? "Your editable 1:1 geometry is ready. Select objects on the canvas and use the inspector for transforms and layers." : "Confirmed measurements are ready to generate an editable 1:1 dieline."}</p>
-          <button className="primary-button full-width" onClick={generate}><Box size={16} /> {dieline ? "Regenerate dieline" : "Generate 1:1 dieline"}</button>
+          <p>{dieline ? "Your editable production geometry is ready. The canvas is fitted to the artboard; use the inspector for transforms and layers." : "Confirmed measurements are ready to generate production geometry."}</p>
+          <button className="primary-button full-width" onClick={generate}><Box size={16} /> {dieline ? "Regenerate dieline" : "Generate dieline"}</button>
           {dieline && <button className="secondary-button full-width" onClick={() => { setPhase("deliver"); setInspectorTab("validate"); }}><Check size={15} /> Validate and export</button>}
         </section>
       )}
