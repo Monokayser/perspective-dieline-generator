@@ -34,13 +34,12 @@ Remove-Item Env:PDG_AUTHENTICODE_PFX
 
 Tauri produces the NSIS setup below `src-tauri/target/release/bundle/nsis/`. The installer embeds the offline WebView2 bootstrapper, installs per-user, creates shortcuts and uninstall metadata, and associates `.pdgproj`. Release output contains:
 
-- `Perspective-Dieline-Generator-Setup-v1.0.1.exe`
+- `Perspective-Dieline-Generator-Setup-v1.0.2.exe`
 - portable ZIP with the signed executable and fixed runtime resources
 - sample pack
 - SHA-256 checksums
-- updater manifest and signature when an updater signing key is supplied
 
-Never label an unsigned artifact as a production build. `package-release.ps1 -AllowUnsigned` is reserved for QA and may be attached only to a clearly marked GitHub pre-release with the SmartScreen and signature limitation stated beside the download.
+When no trusted certificate is available, `package-release.ps1 -AllowUnsigned` may publish a checksum-verified GitHub release only when the SmartScreen and signature limitation is stated beside the download. Do not claim Authenticode verification for that artifact.
 
 ## Windows verification
 
@@ -48,4 +47,4 @@ Use clean Windows 10 and Windows 11 x64 environments. Verify both Authenticode c
 
 ## GitHub release
 
-Authenticate GitHub CLI to `Monokayser`, push the validated commit to the public MIT repository `Monokayser/perspective-dieline-generator`, and publish the release only after Sites and Windows verification. Attach the signed installer, portable ZIP, sample pack, checksums, updater metadata, screenshots, release notes, and test report. Re-download every asset and verify its hash and signature before announcing the release. When no trusted certificate is available, publish only an unsigned pre-release, omit updater metadata, state the limitation prominently, and verify checksums and sizes instead of claiming signature verification.
+Authenticate GitHub CLI to `Monokayser`, push the validated commit to the public MIT repository `Monokayser/perspective-dieline-generator`, and publish the release only after Sites and Windows verification. Attach the installer, portable ZIP, sample pack, checksums, screenshots, release notes, and test report. Re-download every asset and verify its hash; also verify Authenticode when a trusted certificate is available. State any missing signature prominently beside the download.

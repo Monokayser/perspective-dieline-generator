@@ -2,11 +2,11 @@
 
 Local-first software for turning a perspective package photograph into confirmed measurements and an editable, 1:1 vector dieline. The same React/TypeScript workbench runs as a public Sites web app and a Tauri 2 Windows desktop app.
 
-[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.0.1 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.0.1/Perspective-Dieline-Generator-Setup-v1.0.1.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.0.1) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
+[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.0.2 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.0.2/Perspective-Dieline-Generator-Setup-v1.0.2.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.0.2) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
 
 ![Validated print-preview workspace](docs/screenshots/print-preview.png)
 
-## What ships in v1.0.1
+## What ships in v1.0.2
 
 - Eight-stage workflow: Upload, Detect, Correct, Measure, Generate, Edit, Validate, Export.
 - Cancellable local worker analysis with lazy OpenCV.js loading, deterministic fallback analysis, normalized annotations, quality warnings, confidence scoring, previews, and quadrilateral rectification.
@@ -28,7 +28,7 @@ The web app uses the browser's download behavior because websites cannot request
 
 ## Current Windows release status
 
-The public v1.0.1 Windows package is an **unsigned pre-release** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. A signed production release remains gated on a trusted certificate.
+The public v1.0.2 Windows package is **unsigned** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. A signed build remains gated on a trusted certificate.
 
 ## Development
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 - 2026-07-14
+
+- Removed the obsolete desktop updater endpoint and its broken v1.0.0 download link.
+- Published release downloads through the verified GitHub release page.
+- Retained the native Windows Save As export workflow and its focused failure handling.
+
 ## 1.0.1 - 2026-07-14
 
 - Fixed Windows SVG export to always open the native Save dialog with drive, folder, and editable filename selection.

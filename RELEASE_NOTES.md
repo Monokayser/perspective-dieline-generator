@@ -1,4 +1,4 @@
-# Perspective Dieline Generator 1.0.1
+# Perspective Dieline Generator 1.0.2
 
 This patch release hardens Windows SVG export while retaining the local-first workflow from perspective package photography to confirmed measurements and editable 1:1 SVG geometry.
 
@@ -18,4 +18,4 @@ This patch release hardens Windows SVG export while retaining the local-first wo
 
 One photograph cannot reveal hidden dimensions. Real-photo accuracy depends on focus, occlusion, reflection, lens distortion, deformation, and manual correction. All required template dimensions must be confirmed, and physical prototypes must be reviewed before manufacturing.
 
-The attached Windows packages are published as an **unsigned pre-release** because a trusted Authenticode certificate was not available. Windows SmartScreen may warn before launch; verify the attached `SHA256SUMS.txt` before running the installer. A signed production release remains gated on certificate-backed Authenticode verification. See [Test report](docs/TEST_REPORT.md) and [Deployment](docs/DEPLOYMENT.md).
+The attached Windows packages are **unsigned** because a trusted Authenticode certificate was not available. Windows SmartScreen may warn before launch; verify the attached `SHA256SUMS.txt` before running the installer. The obsolete in-app updater was removed so every published download now resolves through the verified GitHub release. A signed build remains gated on certificate-backed Authenticode verification. See [Test report](docs/TEST_REPORT.md) and [Deployment](docs/DEPLOYMENT.md).

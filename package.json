@@ -1,6 +1,6 @@
 {
   "name": "perspective-dieline-generator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -43,7 +43,6 @@
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-store": "^2.4.3",
-    "@tauri-apps/plugin-updater": "^2.10.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
