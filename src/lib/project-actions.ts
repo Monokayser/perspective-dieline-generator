@@ -2,10 +2,14 @@ import { runExport } from "../domain/export-job";
 import { safeFilename } from "./files";
 import { useProjectStore } from "../store/project-store";
 
-export const saveCurrentProject = async () => {
+export const saveCurrentProject = async ({ saveAs = false }: { saveAs?: boolean } = {}) => {
   const state = useProjectStore.getState();
   if (state.readOnly) {
     state.showNotice("warning", "This newer project is open read-only and cannot be overwritten.");
+    return false;
+  }
+  if (state.operation && !["complete", "cancelled", "error"].includes(state.operation.phase)) {
+    state.showNotice("warning", `Wait for ${state.operation.label.toLowerCase()} to finish before saving the project.`);
     return false;
   }
   const filename = `${safeFilename(state.projectName, "dieline-project")}.pdgproj`;
@@ -17,6 +21,7 @@ export const saveCurrentProject = async () => {
       document: state.toDocument(),
       sourceImageDataUrl: state.imageDataUrl ?? undefined,
       onProgress: (progress) => useProjectStore.getState().updateOperation(operationId, progress),
+      saveOptions: !saveAs && state.projectFilePath ? { targetPath: state.projectFilePath } : undefined,
     });
     const current = useProjectStore.getState();
     if (!result) {
@@ -25,8 +30,9 @@ export const saveCurrentProject = async () => {
       return false;
     }
     current.completeOperation(operationId, `${filename} saved successfully`);
+    if (result.path) current.setProjectFilePath(result.path);
     current.markSaved();
-    current.showNotice("success", `${filename} saved successfully.`);
+    current.showNotice("success", result.path ? `Project saved to ${result.path}` : `${filename} downloaded successfully.`);
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "The project could not be saved.";
@@ -36,4 +42,3 @@ export const saveCurrentProject = async () => {
     return false;
   }
 };
-

@@ -13,6 +13,7 @@ Local-first software for turning a perspective package photograph into confirmed
 - Parametric rectangular carton, cube, straight tuck, reverse tuck, sleeve, mailer, triangular closure, and custom starting structures.
 - Native SVG editing, stable semantic IDs, layers, selection transforms, undo/redo, validation, and 1:1 export.
 - Async SVG, PDF, DXF, PNG, JPG, JSON, and `.pdgproj` operations with progress, cancellation, validation gates, and accessible success/error messages.
+- Native Windows Open, Save, and Save As dialogs; Ctrl+S reuses the chosen project path while every export lets the user choose its PC folder and filename.
 - Strict, versioned `.pdgproj` archives with traversal, expansion, entry-count, compression-ratio, schema, and unsafe-content defenses.
 - IndexedDB recovery on web; native file dialogs and private recovery storage in the Tauri desktop shell.
 - Responsive light/dark UI with keyboard support, focus-managed drawers/dialogs, forced-colors, increased-contrast, reduced-motion, safe-area, and screen-reader behavior.

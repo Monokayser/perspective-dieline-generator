@@ -29,7 +29,7 @@ type Snapshot = {
 
 type Notice = { id: string; tone: "success" | "warning" | "error" | "info"; message: string };
 
-type LoadProjectOptions = { readOnly?: boolean; sourceSchemaVersion?: number };
+type LoadProjectOptions = { readOnly?: boolean; sourceSchemaVersion?: number; sourcePath?: string };
 
 type ProjectStore = {
   projectId: string;
@@ -63,6 +63,7 @@ type ProjectStore = {
   dirty: boolean;
   readOnly: boolean;
   sourceSchemaVersion: number;
+  projectFilePath: string | null;
   operation: OperationState | null;
   setProjectName(name: string): void;
   setStage(stage: number): void;
@@ -101,6 +102,7 @@ type ProjectStore = {
   failOperation(id: string, message: string): void;
   clearOperation(): void;
   markSaved(): void;
+  setProjectFilePath(path: string | null): void;
   resetProject(): void;
   loadProject(document: ProjectDocument, imageDataUrl?: string, options?: LoadProjectOptions): void;
   toDocument(): ProjectDocument;
@@ -153,6 +155,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   dirty: false,
   readOnly: false,
   sourceSchemaVersion: 1,
+  projectFilePath: null,
   operation: null,
 
   setProjectName: (projectName) => {
@@ -434,6 +437,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   failOperation: (id, message) => set((state) => state.operation?.id === id ? ({ operation: { ...state.operation, phase: "error", status: "Operation failed", error: message, completedAt: new Date().toISOString() } }) : state),
   clearOperation: () => set({ operation: null }),
   markSaved: () => set({ dirty: false }),
+  setProjectFilePath: (projectFilePath) => set({ projectFilePath }),
   resetProject: () => {
     const identity = createIdentity();
     set({
@@ -456,6 +460,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       dirty: false,
       readOnly: false,
       sourceSchemaVersion: 1,
+      projectFilePath: null,
       operation: null,
     });
   },
@@ -482,6 +487,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     dirty: false,
     readOnly: options.readOnly ?? false,
     sourceSchemaVersion: options.sourceSchemaVersion ?? document.schemaVersion,
+    projectFilePath: options.sourcePath ?? null,
     notice: { id: crypto.randomUUID(), tone: options.readOnly ? "warning" : "success", message: options.readOnly ? `${document.projectName} opened read-only because it uses project schema ${options.sourceSchemaVersion ?? document.schemaVersion}.` : `${document.projectName} opened locally.` },
   }),
   toDocument: () => {

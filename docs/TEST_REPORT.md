@@ -9,7 +9,7 @@ Environment: Windows 11 x64, Node.js 22+, local Sites runtime, in-app Chromium b
 | --- | --- | --- |
 | TypeScript | Pass | `tsc --noEmit` |
 | Lint | Pass | zero warnings with `--max-warnings=0` |
-| Unit/property tests | Pass | 36 tests across 5 files |
+| Unit/property tests | Pass | 40 tests across 5 files, including native picker/read/write path behavior |
 | Coverage | Pass | 72.98% statements, 77.50% lines |
 | Sites build and render | Pass | local-first boot shell and metadata assertions |
 | Dependency audit | Pass | zero advisories at low threshold |
@@ -37,14 +37,14 @@ Tests cover traversal attempts, extreme compression ratios, malformed project ge
 
 ## Windows package QA
 
-The optimized Windows build completed in 466.6 seconds and produced an 18,159,104-byte application plus a 213,238,743-byte NSIS installer containing the offline WebView2 runtime. The QA installer returned exit code 0, installed the application and uninstaller to an isolated per-user location, launched one responsive application process at approximately 40 MB idle working set, and uninstalled with exit code 0. The test location no longer existed afterward.
+The final permission-corrected Windows build completed in 424.2 seconds and produced an 18,168,320-byte application plus a 213,241,186-byte NSIS installer containing the offline WebView2 runtime. The QA installer returned exit code 0, installed the application and uninstaller to an isolated per-user location, launched one responsive application process, and uninstalled with exit code 0. The test location no longer existed afterward. Tauri capability validation confirms that only read/write commands for dialog-selected files were added; the dialog supplies the runtime scope for the exact selected path.
 
 Windows Graphics Capture could not snapshot the Tauri window on this host (`0x80004002: No such interface supported`), so visible installed-window capture is explicitly unverified. Browser and desktop-web surfaces were visually verified separately. The QA executable and installer are unsigned by design; the release script correctly blocks them from production packaging without `-AllowUnsigned`.
 
 Unsigned QA artifact hashes (not production release hashes):
 
-- Installer: `aac25fb6555a96900458e3d1a575e1b79439c373c4aae727727f36f2d990335e`
-- Portable ZIP: `7ccbf3ea5a73fad4c8b82f0575ac73a192f0b8d9a68409d4ab3c2fda6443fde8`
+- Installer: `61072519428b78a55c0b64f5b86c40b47b7be09b981e1f238f002bb51eac160c`
+- Portable ZIP: `d87e1400780f443a6147018c1dd2f8cda13a8b01aafb05c436cc6fdfe78e9338`
 - Sample pack: `2a34ed37676f8b3330277ff2f1d099c328dc60ebfbb7f4d3420ca67ea96baccb`
 
 ## External verification still required

@@ -9,6 +9,6 @@
 7. **Validate** and select issues to highlight affected objects. Fabricate a physical prototype before production.
 8. **Export** editable SVG or `.pdgproj`. PDF/DXF/raster/JSON are enabled only when vector validation has no errors.
 
-Shortcuts: `V` select, `A` direct select, `Ctrl+Z` undo, `Ctrl+Y` redo, `Ctrl+S` project save, `+/-` zoom, `0` fit, `Delete` remove selection, `Esc` close a drawer.
+Shortcuts: `V` select, `A` direct select, `Ctrl+Z` undo, `Ctrl+Y` redo, `Ctrl+S` save the current project, `Ctrl+Shift+S` choose a new project filename/location, `+/-` zoom, `0` fit, `Delete` remove selection, `Esc` close a drawer.
 
-Web saves use explicit downloads. IndexedDB stores recovery only. Desktop projects should be saved to a user-selected folder; uninstallation must not remove those projects.
+Web saves use explicit downloads. IndexedDB stores recovery only. In the Windows app, the first **Save project** action opens the native Save dialog, later saves reuse that project path, and **Save as** chooses another filename or folder. Every SVG, PDF, DXF, PNG, JPG, JSON, and `.pdgproj` export opens the Windows Save dialog so the destination stays under user control. Uninstallation does not remove user-selected project files.

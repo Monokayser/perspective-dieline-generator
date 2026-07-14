@@ -12,6 +12,7 @@ import type {
   ExportRequest,
   ExportResult,
   FileSaveAdapter,
+  FileSaveOptions,
   ProjectDocument,
 } from "./types";
 import { saveBlob } from "../lib/files";
@@ -23,6 +24,7 @@ type ExportContext = {
   sourceImageDataUrl?: string;
   onProgress(progress: ExportProgress): void;
   saveFile?: FileSaveAdapter["save"];
+  saveOptions?: FileSaveOptions;
 };
 
 const formatInfo = {
@@ -45,7 +47,7 @@ const progress = async (callback: ExportContext["onProgress"], value: ExportProg
   await nextFrame();
 };
 
-export const runExport = async ({ request, model, document, sourceImageDataUrl, onProgress, saveFile = saveBlob }: ExportContext): Promise<ExportResult | null> => {
+export const runExport = async ({ request, model, document, sourceImageDataUrl, onProgress, saveFile = saveBlob, saveOptions }: ExportContext): Promise<ExportResult | null> => {
   const info = formatInfo[request.format];
   const filename = request.filename.toLowerCase().endsWith(`.${info.extension}`)
     ? request.filename
@@ -81,8 +83,8 @@ export const runExport = async ({ request, model, document, sourceImageDataUrl, 
   }
 
   await progress(onProgress, { phase: "saving", progress: 0.9, status: "Saving file to this device" });
-  const saved = await saveFile(blob, filename, info.description);
+  const saved = await saveFile(blob, filename, info.description, saveOptions);
   if (saved.cancelled) return null;
   onProgress({ phase: "complete", progress: 1, status: `${filename} is ready` });
-  return { format: request.format, filename, bytes: blob.size, destination: saved.destination };
+  return { format: request.format, filename, bytes: blob.size, destination: saved.destination, path: saved.path };
 };

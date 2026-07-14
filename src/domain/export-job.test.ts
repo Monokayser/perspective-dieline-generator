@@ -50,6 +50,26 @@ describe("export operation pipeline", () => {
     expect(result).toBeNull();
   });
 
+  it("forwards a chosen desktop path and reports where the file was saved", async () => {
+    const targetPath = "C:\\Users\\Example\\Documents\\fixture.svg";
+    const save = vi.fn(async (_blob: Blob, filename: string, _description?: string, options?: { targetPath?: string }) => ({
+      filename,
+      destination: "desktop" as const,
+      cancelled: false,
+      path: options?.targetPath,
+    }));
+    const result = await runExport({
+      request: { format: "svg", filename: "fixture.svg" },
+      model,
+      document,
+      onProgress: () => undefined,
+      saveFile: save,
+      saveOptions: { targetPath },
+    });
+    expect(save).toHaveBeenCalledWith(expect.any(Blob), "fixture.svg", "Editable SVG dieline", { targetPath });
+    expect(result?.path).toBe(targetPath);
+  });
+
   it("rejects production exports without generated geometry", async () => {
     await expect(runExport({
       request: { format: "svg", filename: "missing.svg" },
@@ -60,4 +80,3 @@ describe("export operation pipeline", () => {
     })).rejects.toThrow(/generate and validate/i);
   });
 });
-

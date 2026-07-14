@@ -30,7 +30,7 @@ import {
 } from "../domain/exporters";
 import { runExport } from "../domain/export-job";
 import type { EdgeKind, ExportFormat, ValidationSeverity } from "../domain/types";
-import { safeFilename } from "../lib/files";
+import { isDesktopApp, safeFilename } from "../lib/files";
 import { validationSummary } from "../domain/validation";
 import { useProjectStore } from "../store/project-store";
 
@@ -78,6 +78,7 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
   const selected = selectedPanel ?? selectedPath;
   const summary = validationSummary(validationIssues);
   const filename = safeFilename(projectName);
+  const desktop = isDesktopApp();
   const exportBusy = operation?.kind === "export" && !["complete", "error", "cancelled"].includes(operation.phase);
 
   const performExport = async (format: ExportFormat) => {
@@ -105,8 +106,8 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
         showNotice("info", "Export cancelled. No file was written.");
         return;
       }
-      completeOperation(operationId, `${result.filename} saved successfully`);
-      showNotice("success", `${result.filename} exported successfully.`);
+      completeOperation(operationId, result.path ? `Saved to ${result.path}` : `${result.filename} saved successfully`);
+      showNotice("success", result.path ? `${result.filename} saved to ${result.path}` : `${result.filename} downloaded successfully.`);
       setStage(7);
     } catch (error) {
       const message = error instanceof Error ? error.message : "The export could not be completed.";
@@ -230,9 +231,9 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
               <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("png")}><FileImage size={16} /><span><strong>PNG</strong><small>300 dpi</small></span></button>
               <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("jpg")}><FileImage size={16} /><span><strong>JPG</strong><small>300 dpi</small></span></button>
               <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("json")}><FileCode2 size={16} /><span><strong>JSON</strong><small>Raw model</small></span></button>
-              <button disabled={exportBusy || readOnly} onClick={() => void performExport("project")}><FileArchive size={16} /><span><strong>PDGPROJ</strong><small>Editable project</small></span></button>
+              <button disabled={exportBusy || readOnly} onClick={() => void performExport("project")}><FileArchive size={16} /><span><strong>Save project</strong><small>Choose .pdgproj location</small></span></button>
             </div>
-            <div className="compatibility-note"><Info size={14} /><span>SVG groups are named for Illustrator, Inkscape, CorelDRAW, and Affinity Designer.</span></div>
+            <div className="compatibility-note"><Info size={14} /><span>{desktop ? "Every export opens the Windows Save dialog so you can choose the folder and filename." : "Exports use your browser download settings. Install the Windows app to choose a PC folder for every save."} SVG groups remain editable in major vector applications.</span></div>
           </>
         )}
       </div>

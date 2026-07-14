@@ -55,10 +55,22 @@ export interface ExportResult {
   filename: string;
   bytes: number;
   destination: "download" | "desktop";
+  path?: string;
+}
+
+export interface FileSaveOptions {
+  targetPath?: string;
+}
+
+export interface FileSaveResult {
+  filename: string;
+  destination: "download" | "desktop";
+  cancelled: boolean;
+  path?: string;
 }
 
 export interface FileSaveAdapter {
-  save(blob: Blob, filename: string, description?: string): Promise<{ filename: string; destination: "download" | "desktop"; cancelled: boolean }>;
+  save(blob: Blob, filename: string, description?: string, options?: FileSaveOptions): Promise<FileSaveResult>;
 }
 
 export type Provenance =

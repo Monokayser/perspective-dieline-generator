@@ -97,7 +97,7 @@ export function Workbench() {
       const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        void saveCurrentProject();
+        void saveCurrentProject({ saveAs: event.shiftKey });
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); undo(); }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") { event.preventDefault(); redo(); }
