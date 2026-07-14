@@ -1,5 +1,5 @@
 param(
-  [string]$Version = "1.1.0",
+  [string]$Version = "1.1.1",
   [string]$PfxPath = $env:PDG_AUTHENTICODE_PFX,
   [string]$PasswordEnvironmentVariable = "PDG_AUTHENTICODE_PASSWORD",
   [string]$TimestampUrl = "http://timestamp.digicert.com"

@@ -1,79 +1,85 @@
 # Perspective Dieline Generator
 
-Local-first software for turning a perspective package photograph into confirmed measurements and an editable, 1:1 vector dieline. The same React/TypeScript workbench runs as a public Sites web app and a Tauri 2 Windows desktop app.
+Local-first software for turning a perspective package photograph into confirmed measurements and an editable 1:1 vector dieline. One React/TypeScript/Vite workbench powers both the GitHub Pages web app and the Tauri 2 Windows desktop app.
 
-[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.1.0 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.0/Perspective-Dieline-Generator-Setup-v1.1.0.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.0) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
+[Open the web app](https://monokayser.github.io/perspective-dieline-generator/) | [Windows v1.1.1 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.1/Perspective-Dieline-Generator-Setup-v1.1.1.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.1) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
 
-![Validated print-preview workspace](docs/screenshots/print-preview.png)
+![Light-theme dieline editor](docs/screenshots/light-workbench.png)
 
-## What ships in v1.1.0
+## Features
 
-- Five focused phases: Source, Analyze, Measure, Design, and Deliver. Each phase shows only the controls needed for that part of the job.
-- Functional image preparation for rotation, horizontal/vertical flips, brightness, contrast, and saturation. The prepared bitmap is used for display and analysis while the untouched original stays in the project.
-- Cancellable local worker analysis with lazy OpenCV.js loading, deterministic fallback analysis, normalized annotations, quality warnings, confidence scoring, previews, and quadrilateral rectification.
-- Parametric rectangular carton, cube, straight tuck, reverse tuck, sleeve, mailer, triangular closure, and custom starting structures.
-- Native SVG editing, stable semantic IDs, layers, selection transforms, undo/redo, validation, and 1:1 export.
-- Async SVG, PDF, DXF, PNG, JPG, JSON, and `.pdgproj` operations with progress, cancellation, validation gates, and accessible success/error messages.
-- Native Windows Open, Save, and Save As dialogs; Ctrl+S reuses the chosen project path while every export lets the user choose its PC folder and filename.
-- Strict, versioned `.pdgproj` archives with traversal, expansion, entry-count, compression-ratio, schema, and unsafe-content defenses.
-- IndexedDB recovery on web; native file dialogs and private recovery storage in the Tauri desktop shell.
-- Premium dark and polished light themes with self-hosted Inter, platform fallbacks, labeled inspector tabs, keyboard support, focus-managed drawers/dialogs, forced-colors, increased-contrast, reduced-motion, safe-area, and screen-reader behavior down to 360 px.
+- Five focused phases: Source, Analyze, Measure, Design, and Deliver.
+- Deterministic rotation, flips, brightness, contrast, and saturation before display and local analysis, while preserving the untouched original.
+- Cancellable OpenCV.js worker analysis, ranked candidates, draggable normalized annotations, confidence scoring, and quality warnings.
+- Eight parametric package structures plus a custom starting structure.
+- Editable millimetre geometry, semantic layers, selection transforms, undo/redo, validation, and 1:1 output.
+- SVG as the primary format, with PDF, DXF, PNG, JPG, JSON, and versioned `.pdgproj` support.
+- Responsive dark and light themes with self-hosted Inter, platform font fallbacks, keyboard navigation, focus-managed drawers, forced colors, reduced motion, and 360 px support.
+- Native Windows Open, Save, and Save As dialogs. Every desktop export lets the user choose its drive, folder, and filename.
 
-Images are never sent to an application backend. A single image cannot reveal hidden dimensions, so inferred proportions never become confirmed manufacturing measurements automatically.
+Images are processed locally and are not sent to an application backend. A photograph cannot reveal hidden dimensions, so inferred proportions never become confirmed manufacturing measurements automatically.
 
 ## SVG Save As on Windows
 
-In the Windows desktop app, **Export editable SVG** opens the native Windows Save dialog before anything is written. Choose any available drive or folder, edit the suggested filename, then select **Save** or **Cancel**. The app preserves the `.svg` extension, reports the final selected path, relies on the Windows overwrite confirmation for duplicate names, and gives repair guidance for permission, missing-folder, locked-file, invalid-path, and disk-space failures. Cancelling writes no file.
+In the Windows app, **Export editable SVG** opens the native Windows Save dialog before writing. Choose any available drive or folder, edit the suggested filename, then select **Save** or **Cancel**. The app preserves `.svg`, reports the selected path, uses Windows overwrite confirmation for duplicate names, and explains permission, missing-folder, locked-file, invalid-path, and disk-space failures. Cancel writes nothing.
 
-The web app uses the browser's download behavior because websites cannot request unrestricted filesystem paths. Use the Windows build when an exact PC destination is required.
+The web app uses the browser download location because public websites cannot request unrestricted filesystem access. Use the Windows build when an exact PC destination is required.
 
-## Current Windows release status
+## Install and use
 
-The public v1.1.0 Windows package is **unsigned** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. No Authenticode claim is made for this build.
+Download the v1.1.1 installer from the [Latest release](https://github.com/Monokayser/perspective-dieline-generator/releases/latest). The installer includes the offline WebView2 runtime and installs per user. A portable ZIP and sample pack are also attached.
 
-## Development
+The v1.1.1 artifacts are **unsigned** because no trusted Authenticode certificate was supplied. Windows SmartScreen may warn. Verify the downloaded file against `SHA256SUMS.txt`; no Authenticode claim is made for this release.
+
+## Local development
 
 Requirements: Node.js 22.13+ and npm. Windows packaging additionally needs Rust stable and Visual Studio 2022 Build Tools with the Desktop C++ workload.
 
 ```bash
 npm ci
+npm run dev
+```
+
+The development server opens at `http://localhost:5173`. Run the release gates with:
+
+```bash
 npm run check
 npm run audit:release
 npm run test:coverage
 npm run test:e2e
 npm run desktop:web
-npm run desktop:build
+cargo check --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-The Sites build is emitted to `dist/`. The Tauri SPA is emitted to `desktop-dist/`; native artifacts are emitted below `src-tauri/target/release/bundle/`.
+`npm run build` emits the static GitHub Pages artifact to `dist/`. Set `PDG_BASE_PATH=/perspective-dieline-generator/` for the repository host. `npm run desktop:web` emits relative offline assets to `desktop-dist/`, and `npm run desktop:build` creates the Windows bundle under `src-tauri/target/release/bundle/`.
 
-## Windows release signing
+## Project structure
 
-Production Windows artifacts must be Authenticode-signed. Put the trusted PFX outside the repository, then expose only its path and password to the release process:
-
-```powershell
-$env:PDG_AUTHENTICODE_PFX = "C:\secure\codesigning.pfx"
-$env:PDG_AUTHENTICODE_PASSWORD = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
-npm run release:signed
-Remove-Item Env:PDG_AUTHENTICODE_PASSWORD
+```text
+desktop/                 Shared Vite HTML and React entry
+src/components/          Workbench UI
+src/domain/              Geometry, project, validation, and export contracts
+src/store/               Project state and command history
+src/styles/              Shared semantic theme and responsive CSS
+src/workers/             Local analysis worker
+src-tauri/               Windows shell, native Save As adapter, and packaging
+tests/                   Unit, static-build, budget, and Playwright checks
+docs/                    User, architecture, deployment, and QA documentation
+.github/workflows/       Release gates and GitHub Pages deployment
 ```
 
-The release script signs with SHA-256 and a trusted timestamp, verifies both the application and NSIS installer, creates the portable ZIP and checksums, and never copies the PFX into the repository or release output. See [Deployment](docs/DEPLOYMENT.md).
-
-## Safety and data contracts
-
-Canonical geometry uses double-precision millimetres. Image annotations are normalized to `[0,1]`. Production exports are blocked when validation contains errors, while `.pdgproj` recovery saves remain available. Newer recoverable project versions open read-only.
-
-See [Calibration](docs/CALIBRATION_GUIDE.md), [Architecture](docs/ARCHITECTURE.md), [CV pipeline](docs/COMPUTER_VISION.md), [Templates](docs/TEMPLATES.md), [Privacy and limitations](docs/PRIVACY_AND_LIMITATIONS.md), [Security](SECURITY.md), and [Troubleshooting](docs/TROUBLESHOOTING.md).
+Runtime dependencies are declared in `package.json` and `src-tauri/Cargo.toml`; exact versions are locked in `package-lock.json` and `src-tauri/Cargo.lock`. The project is released under the [MIT License](LICENSE).
 
 ## Screenshots
 
-![Five-phase analysis workspace](docs/screenshots/analysis-workspace.png)
+![Dark analysis workspace](docs/screenshots/analysis-workspace.png)
 
 ![Responsive 360 px workbench](docs/screenshots/mobile-workbench.png)
 
-The supplied visual references were used only as private design guidance. They are not included in the application, fixtures, samples, screenshots, installers, or public deployment.
+The supplied visual references and QA screenshots were private design guidance only and are not included in application or release artifacts.
 
-## License
+## Documentation and limitations
 
-Released under the [MIT License](LICENSE).
+See [User guide](docs/USER_GUIDE.md), [Calibration](docs/CALIBRATION_GUIDE.md), [Architecture](docs/ARCHITECTURE.md), [CV pipeline](docs/COMPUTER_VISION.md), [Templates](docs/TEMPLATES.md), [Deployment](docs/DEPLOYMENT.md), [Privacy and limitations](docs/PRIVACY_AND_LIMITATIONS.md), [Security](SECURITY.md), and [Troubleshooting](docs/TROUBLESHOOTING.md).
+
+Known limits include single-image ambiguity, unsigned Windows binaries, browser-controlled web download locations, and the need to verify physical prototypes before manufacturing.

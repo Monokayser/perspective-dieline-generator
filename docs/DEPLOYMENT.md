@@ -2,7 +2,7 @@
 
 ## Release gates
 
-Run from a clean checkout with Node.js 22.13+:
+From a clean checkout with Node.js 22.13+, Rust stable, and the Windows desktop toolchain:
 
 ```bash
 npm ci
@@ -11,41 +11,39 @@ npm run audit:release
 npm run test:coverage
 npm run test:e2e
 npm run desktop:web
+cargo check --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-The release is blocked by any lint warning, TypeScript error, failing unit/site test, dependency advisory, bundle-budget breach, invalid project fixture, or failed production build.
+Any lint warning, TypeScript error, failing test, dependency advisory, budget breach, or failed native build blocks release.
 
-## Sites
+## GitHub Pages
 
-Build with `npm run build`, package the exact validated source using the bundled Sites packager, save an immutable project version, then deploy that version publicly. No D1, R2, application API, credentials, or authentication are required at runtime. Verify the public URL with a fresh browser session, the guided sample, validation, SVG/JSON export, theme switch, offline-ready status, and a forced asset-failure check.
+The `pages` job in `.github/workflows/ci.yml` runs only for non-PR events after both the complete web gate and Windows bundle gate pass. It sets `PDG_BASE_PATH=/perspective-dieline-generator/`, builds `dist/`, configures Pages with GitHub Actions as its source, uploads the static artifact, and deploys it with least-privilege `contents: read`, `pages: write`, and `id-token: write` permissions.
 
-## Signed Windows build
+Canonical URL: https://monokayser.github.io/perspective-dieline-generator/
 
-Install Rust stable and Visual Studio 2022 Build Tools with the Desktop C++ workload. Store the trusted code-signing PFX outside the repository. Supply its location and password only through the process environment:
+Verify the deployed root and hashed assets, refresh behavior, both themes, the guided sample, validation, SVG download, and 360 px layout in Chromium, Firefox, and WebKit. The app has no client-side routes, backend, credentials, or runtime cloud bindings.
+
+## Windows build
+
+Install Visual Studio 2022 Build Tools with the Desktop C++ workload. Run:
 
 ```powershell
-$env:PDG_AUTHENTICODE_PFX = "C:\secure\codesigning.pfx"
-$env:PDG_AUTHENTICODE_PASSWORD = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
-npm run release:signed
-Remove-Item Env:PDG_AUTHENTICODE_PASSWORD
-Remove-Item Env:PDG_AUTHENTICODE_PFX
+npm run desktop:build
+powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 -Version 1.1.1 -AllowUnsigned
 ```
 
-`scripts/build-signed-windows.ps1` validates the certificate, uses a temporary ignored Tauri signing configuration, applies SHA-256 signatures with a trusted timestamp, removes temporary certificate state, verifies the application and installer signature chains, and runs `scripts/package-release.ps1`.
+Tauri builds a current-user NSIS installer with offline WebView2, shortcuts, uninstall metadata, application/version icons, and `.pdgproj` association. The packaging script creates:
 
-Tauri produces the NSIS setup below `src-tauri/target/release/bundle/nsis/`. The installer embeds the offline WebView2 bootstrapper, installs per-user, creates shortcuts and uninstall metadata, and associates `.pdgproj`. Release output contains:
+- `Perspective-Dieline-Generator-Setup-v1.1.1.exe`
+- `Perspective-Dieline-Generator-Portable-v1.1.1-win-x64.zip`
+- `Perspective-Dieline-Generator-Sample-Pack-v1.1.1.zip`
+- `SHA256SUMS.txt`
 
-- `Perspective-Dieline-Generator-Setup-v1.1.0.exe`
-- portable ZIP with the signed executable and fixed runtime resources
-- sample pack
-- SHA-256 checksums
+Unsigned publication is allowed only when the release prominently states the SmartScreen limitation and supplies verified checksums. For Authenticode instructions, see `scripts/build-signed-windows.ps1`; signing credentials must remain outside the repository.
 
-When no trusted certificate is available, `package-release.ps1 -AllowUnsigned` may publish a checksum-verified GitHub release only when the SmartScreen and signature limitation is stated beside the download. Do not claim Authenticode verification for that artifact.
+## Verification and release
 
-## Windows verification
+Verify install, launch, native project dialogs, per-export Save As, extension preservation, cancellation, permission/path failures, clean uninstall, version metadata, icon resources, and checksums. Then push the validated commit, tag `v1.1.1`, create the GitHub Latest release, attach the installer, portable ZIP, sample pack, checksums, screenshots, release notes, and test report, and re-download each asset to verify size and SHA-256.
 
-Use clean Windows 10 and Windows 11 x64 environments. Verify both Authenticode chains, install, launch, Start Menu and optional desktop shortcuts, `.pdgproj` association, offline analysis/export, upgrade preservation, uninstall, and preservation of user-selected project files. Updater-network failure must be non-blocking.
-
-## GitHub release
-
-Authenticate GitHub CLI to `Monokayser`, push the validated commit to the public MIT repository `Monokayser/perspective-dieline-generator`, and publish the release only after Sites and Windows verification. Attach the installer, portable ZIP, sample pack, checksums, screenshots, release notes, and test report. Re-download every asset and verify its hash; also verify Authenticode when a trusted certificate is available. State any missing signature prominently beside the download.
+After GitHub Pages is confirmed publicly accessible, restrict the former hosted project to owner-only access and verify it no longer exposes the application anonymously.

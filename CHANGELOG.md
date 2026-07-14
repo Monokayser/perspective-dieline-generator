@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1 - 2026-07-15
+
+- Replaced the low-contrast light-theme application mark with adaptive badge, face, border, and shadow tokens shared by the top bar and onboarding.
+- Increased light-theme secondary-text and selected-accent contrast, and restored visible unselected dieline flap geometry on the white artboard.
+- Made the shared Vite SPA the canonical static web build with `PDG_BASE_PATH` support for GitHub Pages and relative assets for offline Tauri use.
+- Removed the obsolete Vinext, Next.js, Cloudflare worker, ChatGPT Sites wrapper, hosting manifest, and deployment-only dependencies.
+- Added gated GitHub Pages deployment after the browser and Windows release jobs pass.
+- Added both-theme mark contrast, axe-core, light-mode flap visibility, static metadata, asset path, and bundle regression checks.
+- Updated the public URLs, screenshots, Windows artifacts, checksums, documentation, and release metadata for v1.1.1.
+
 ## 1.1.0 - 2026-07-14
 
 - Redesigned the workbench as a premium dark-first engineering interface with an equivalent high-contrast light theme.

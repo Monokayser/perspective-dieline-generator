@@ -1,26 +1,27 @@
-# Perspective Dieline Generator 1.1.0
+# Perspective Dieline Generator 1.1.1
 
-Version 1.1.0 is a focused redesign of the local-first packaging workbench. It keeps the compatible project and export contracts from v1.0.2 while making the complete path from source image to production SVG clearer, faster to scan, and usable down to 360 px.
+Version 1.1.1 is a compatibility and publishing release. It preserves v1.1.0 project, geometry, export, and native Save As contracts while making GitHub Pages the canonical public host and correcting light-theme contrast issues reported from the production UI.
 
-## Release highlights
+## Highlights
 
-- Five synchronized phases: Source, Analyze, Measure, Design, and Deliver.
-- Premium near-black engineering UI with restrained violet/cyan focus treatment and an equivalent light theme.
-- Self-hosted Inter Variable with robust system fallbacks, stable type sizes, 16 px mobile form controls, and tabular measurement numerals.
-- Real bitmap preparation for rotation, horizontal/vertical flips, brightness, contrast, and saturation before display and analysis; the original project image remains untouched.
-- Direct draggable annotation correction with misleading cosmetic tool modes removed.
-- Labeled Properties, Layers, Validate, and Export tabs; phase navigation opens the relevant workspace and inspector state automatically.
-- SVG remains the primary export, PDF/DXF are grouped as production formats, and preview/data formats are collapsed until needed.
-- Native Windows project Open/Save/Save As and per-export destination pickers with least-privilege selected-file access.
-- Windows Save dialogs accept any available drive/folder and edited filename, use native overwrite confirmation, and surface actionable path, permission, locked-file, and disk-space failures. Cancel writes nothing.
-- Automated Chromium, Firefox, and WebKit checks at 360x800, 768x1024, 1440x900, and 1920x1080 plus full desktop SVG workflows.
+- Adaptive package mark with theme-specific background, three faces, border, and shadow; the existing blue raster icon remains on Windows, shortcuts, file associations, and favicons.
+- Clear unselected flap and panel geometry on the light artboard, plus stronger secondary-text and selected-tab contrast.
+- A single Vite SPA build shared by the web app and Tauri desktop shell.
+- Repository-aware `PDG_BASE_PATH` for GitHub Pages and relative offline asset URLs for Windows.
+- Removed the retired Vinext/Next/Cloudflare deployment wrapper and its dependencies.
+- GitHub Pages deployment is gated on lint, TypeScript, unit/coverage, static build, bundle budgets, dependency audit, Chromium/Firefox/WebKit workflows, and Windows bundling.
+- Native Windows SVG Save As remains unchanged: choose any available drive/folder and filename, confirm or cancel, and receive actionable path or permission errors.
 
-## Windows package
+## Downloads
 
-The installer embeds the offline WebView2 runtime so a clean Windows system does not need a separate web-runtime setup. The attached installer and portable ZIP are **unsigned** because a trusted Authenticode certificate was not available. Windows SmartScreen may warn before launch. Verify `SHA256SUMS.txt` before running an artifact; no Authenticode claim is made for this release.
+- Live app: https://monokayser.github.io/perspective-dieline-generator/
+- Release: https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.1
+- Installer: `Perspective-Dieline-Generator-Setup-v1.1.1.exe`
+- Portable: `Perspective-Dieline-Generator-Portable-v1.1.1-win-x64.zip`
+- Sample pack and `SHA256SUMS.txt` are attached to the release.
 
-## Manufacturing and vision limitations
+The Windows artifacts include offline WebView2 and are **unsigned** because no trusted Authenticode certificate was supplied. Windows SmartScreen may warn. Verify `SHA256SUMS.txt`; no Authenticode claim is made.
 
-One photograph cannot reveal hidden dimensions. Real-photo accuracy depends on focus, occlusion, reflection, lens distortion, deformation, and manual correction. Confirm every required dimension and review a physical prototype before manufacturing.
+## Limitations
 
-See the [test report](docs/TEST_REPORT.md), [user guide](docs/USER_GUIDE.md), and [deployment guide](docs/DEPLOYMENT.md).
+A single photograph cannot reveal hidden dimensions. Confirm all required dimensions and inspect a physical prototype before manufacturing. Web downloads follow browser settings; unrestricted drive/folder selection remains exclusive to the Windows app.

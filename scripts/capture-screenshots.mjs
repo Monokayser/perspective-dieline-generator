@@ -25,6 +25,10 @@ try {
   await page.getByRole("button", { name: /Generate 1:1 dieline/i }).click();
   await page.getByRole("tab", { name: /Print preview/i }).click();
   await page.screenshot({ path: join(output, "print-preview.png"), fullPage: true });
+
+  await page.getByTitle("Switch to light mode").click();
+  await page.getByRole("tab", { name: /Dieline editor/i }).click();
+  await page.screenshot({ path: join(output, "light-workbench.png"), fullPage: true });
   await context.close();
 
   const mobile = await browser.newContext({

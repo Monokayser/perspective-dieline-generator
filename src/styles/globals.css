@@ -11,11 +11,11 @@
   --artboard: #ffffff;
   --text: #171a24;
   --text-muted: #596174;
-  --text-faint: #737d91;
+  --text-faint: #626b7d;
   --border: #d9ddea;
   --border-strong: #c3c9da;
-  --accent: #6657e8;
-  --accent-hover: #5245c8;
+  --accent: #5b4bd1;
+  --accent-hover: #493bb1;
   --accent-soft: #eeecff;
   --cyan: #087da8;
   --cyan-soft: #e3f7ff;
@@ -25,6 +25,17 @@
   --warning-soft: #fff3df;
   --error: #c92a2a;
   --error-soft: #fff0f0;
+  --app-mark-background: #5b4fe9;
+  --app-mark-face-top: #ffffff;
+  --app-mark-face-left: #d9f4ff;
+  --app-mark-face-right: #91dcff;
+  --app-mark-border: #3d32c5;
+  --app-mark-shadow: 0 4px 14px rgba(66, 52, 206, 0.28);
+  --dieline-panel-fill: rgba(91, 79, 233, 0.055);
+  --dieline-panel-stroke: rgba(47, 55, 73, 0.48);
+  --dieline-panel-hover: rgba(91, 79, 233, 0.11);
+  --dieline-panel-selected: rgba(69, 102, 246, 0.17);
+  --dieline-panel-selected-stroke: #315df4;
   --purple: #7c3aed;
   --pink: #db2777;
   --shadow: 0 8px 28px rgba(31, 41, 55, 0.12);
@@ -66,6 +77,17 @@
   --warning-soft: #392916;
   --error: #ff6b6b;
   --error-soft: #3a1d22;
+  --app-mark-background: #34286d;
+  --app-mark-face-top: #ffffff;
+  --app-mark-face-left: #a9ddff;
+  --app-mark-face-right: #6d9fff;
+  --app-mark-border: #9b8cff;
+  --app-mark-shadow: 0 0 22px rgba(141, 124, 255, 0.32);
+  --dieline-panel-fill: rgba(91, 79, 233, 0.055);
+  --dieline-panel-stroke: rgba(47, 55, 73, 0.48);
+  --dieline-panel-hover: rgba(91, 79, 233, 0.11);
+  --dieline-panel-selected: rgba(69, 102, 246, 0.17);
+  --dieline-panel-selected-stroke: #315df4;
   --purple: #b692ff;
   --pink: #ff78ae;
   --shadow: 0 16px 38px rgba(0, 0, 0, 0.48);
@@ -233,8 +255,9 @@ button:disabled {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: linear-gradient(145deg, #2f79ff, #1747b8);
-  box-shadow: inset 0 1px rgba(255,255,255,.25), 0 4px 12px rgba(36,107,253,.22);
+  border: 1px solid var(--app-mark-border);
+  background: var(--app-mark-background);
+  box-shadow: inset 0 1px rgba(255,255,255,.22), var(--app-mark-shadow);
   overflow: hidden;
 }
 
@@ -247,13 +270,13 @@ button:disabled {
 .app-mark span {
   position: absolute;
   display: block;
-  background: rgba(255,255,255,.96);
+  background: var(--app-mark-face-top);
   border-radius: 1px;
 }
 
 .app-mark span:nth-child(1) { width: 16px; height: 11px; left: 8px; top: 8px; transform: skewY(-23deg); }
-.app-mark span:nth-child(2) { width: 10px; height: 12px; left: 8px; top: 18px; transform: skewY(18deg); }
-.app-mark span:nth-child(3) { width: 10px; height: 12px; left: 17px; top: 17px; transform: skewY(-18deg); opacity: .72; }
+.app-mark span:nth-child(2) { width: 10px; height: 12px; left: 8px; top: 18px; transform: skewY(18deg); background: var(--app-mark-face-left); }
+.app-mark span:nth-child(3) { width: 10px; height: 12px; left: 17px; top: 17px; transform: skewY(-18deg); background: var(--app-mark-face-right); }
 .app-mark.large span:nth-child(1) { width: 29px; height: 19px; left: 14px; top: 14px; }
 .app-mark.large span:nth-child(2) { width: 18px; height: 22px; left: 14px; top: 31px; }
 .app-mark.large span:nth-child(3) { width: 18px; height: 22px; left: 30px; top: 30px; }
@@ -766,9 +789,9 @@ button:disabled {
 .artboard-fill { fill: #fff; }
 .minor-grid-line { stroke: #dbe2ea; stroke-width: .07; }
 .major-grid-line { stroke: #c8d0d9; stroke-width: .11; }
-.panel-shape { fill: rgba(36,107,253,.025); stroke: rgba(60,70,85,.15); stroke-width: .12; cursor: pointer; }
-.panel-shape:hover { fill: rgba(36,107,253,.08); }
-.panel-shape.selected { fill: rgba(36,107,253,.13); stroke: #246bfd; stroke-width: .4; }
+.panel-shape { fill: var(--dieline-panel-fill); stroke: var(--dieline-panel-stroke); stroke-width: .24; cursor: pointer; }
+.panel-shape:hover { fill: var(--dieline-panel-hover); }
+.panel-shape.selected { fill: var(--dieline-panel-selected); stroke: var(--dieline-panel-selected-stroke); stroke-width: .4; }
 .panel-glue { fill: rgba(240,162,67,.1); }
 .vector-path { fill: none; vector-effect: non-scaling-stroke; cursor: pointer; }
 .vector-cut { stroke: #16191e; stroke-width: 1.5px; }
@@ -1302,9 +1325,9 @@ kbd,
 }
 
 .app-mark {
-  border: 1px solid color-mix(in srgb, var(--accent) 62%, var(--border));
-  background: var(--accent-soft);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: var(--app-mark-border);
+  background: var(--app-mark-background);
+  box-shadow: var(--app-mark-shadow);
 }
 
 .brand-copy strong { font-size: var(--type-ui); letter-spacing: 0; }

@@ -15,11 +15,6 @@
 /test-results/
 /playwright-report/
 
-# next.js
-/.next/
-/.vinext/
-/out/
-
 # misc
 .DS_Store
 *.pem
@@ -35,11 +30,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
-.vercel
-
 # typescript
-next-env.d.ts
 *.tsbuildinfo
 /dist/
 desktop-dist/
@@ -47,7 +38,6 @@ src-tauri/target/
 src-tauri/gen/
 release/
 .release-secrets/
-/.wrangler/
 /outputs/
 /work/
 

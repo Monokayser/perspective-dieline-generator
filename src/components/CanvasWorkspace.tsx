@@ -164,8 +164,7 @@ function ImageCanvas() {
   return (
     <div className="image-workspace">
       <div className="image-stage">
-        {/* The original user-selected data URL must remain byte-for-byte local and is not eligible for framework image optimisation. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* Keep the untouched source local; image preparation is handled by the deterministic bitmap pipeline. */}
         <img
           src={preparedImage?.source === imageDataUrl ? preparedImage.url : imageDataUrl}
           alt={`Source package: ${imageFilename ?? "uploaded image"}`}

@@ -23,7 +23,7 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run test:coverage
-      - run: npm run test:site
+      - run: npm run test:web
       - run: npm run desktop:web
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
@@ -45,3 +45,35 @@ jobs:
           if (-not (Test-Path src-tauri/icons/icon.ico)) { throw "Windows icon is missing." }
           $setup = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object -First 1
           if (-not $setup) { throw "NSIS installer was not produced." }
+
+  pages:
+    needs: [web, windows-bundle]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build GitHub Pages artifact
+        run: npm run build
+        env:
+          PDG_BASE_PATH: /perspective-dieline-generator/
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

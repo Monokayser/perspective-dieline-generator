@@ -1,10 +1,10 @@
 # Security Review
 
-Release audit date: 2026-07-14.
+Release audit date: 2026-07-15.
 
 ## Completed controls
 
-- Removed unused ChatGPT authentication, example API routes, D1/R2 bindings, database schemas, generation scripts, and Drizzle packages from the production graph.
+- Removed unused authentication, API, Cloudflare worker, hosting wrapper, D1/R2, database, and Drizzle code from the production graph.
 - Confirmed the application has no accounts, application backend, database, or cloud project synchronization.
 - Upgraded the supported dependency graph and reduced `npm audit --audit-level=low` to zero advisories.
 - Added image, decoded-dimension, raster-export, archive-size, entry-count, expansion, compression-ratio, path-traversal, malformed-schema, and unsafe-content guards.

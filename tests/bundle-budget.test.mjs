@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import test from "node:test";
 
-const assets = new URL("../dist/client/assets/", import.meta.url);
+const assets = new URL("../dist/assets/", import.meta.url);
 
 test("initial application assets remain within release budgets", async () => {
   const names = await readdir(assets);

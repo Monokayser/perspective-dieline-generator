@@ -1,6 +1,19 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+const contrast = (a: number[], b: number[]) => {
+  const luminance = ([r, g, blue]: number[]) => {
+    const linear = [r, g, blue].map((value) => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const first = luminance(a);
+  const second = luminance(b);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("pdg-onboarding-complete", "true");
@@ -35,11 +48,39 @@ test("renders the five-phase workbench without horizontal overflow", async ({ pa
 
 test("has no serious automated accessibility violations", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop");
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-    .analyze();
-  const serious = results.violations.filter(({ impact }) => impact === "serious" || impact === "critical");
-  expect(serious).toEqual([]);
+  for (const theme of ["dark", "light"] as const) {
+    const switchButton = page.getByTitle(`Switch to ${theme} mode`);
+    if (await switchButton.count()) await switchButton.click();
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    const serious = results.violations.filter(({ impact }) => impact === "serious" || impact === "critical");
+    expect(serious, `${theme} theme`).toEqual([]);
+  }
+});
+
+test("application mark keeps non-text contrast in both themes", async ({ page }) => {
+  for (const theme of ["dark", "light"] as const) {
+    const switchButton = page.getByTitle(`Switch to ${theme} mode`);
+    if (await switchButton.count()) await switchButton.click();
+    const colors = await page.locator(".app-mark").first().evaluate((mark) => {
+      const parse = (value: string) => value.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [];
+      const markStyle = getComputedStyle(mark);
+      const parentStyle = getComputedStyle(mark.parentElement!);
+      const faces = [...mark.querySelectorAll("span")].map((face) => parse(getComputedStyle(face).backgroundColor));
+      return {
+        background: parse(markStyle.backgroundColor),
+        border: parse(markStyle.borderTopColor),
+        surrounding: parse(parentStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? getComputedStyle(document.querySelector(".topbar")!).backgroundColor : parentStyle.backgroundColor),
+        faces,
+        bounds: mark.getBoundingClientRect().toJSON(),
+      };
+    });
+    expect(colors.bounds.width).toBeGreaterThanOrEqual(30);
+    expect(colors.bounds.height).toBeGreaterThanOrEqual(30);
+    expect(Math.max(contrast(colors.background, colors.surrounding), contrast(colors.border, colors.surrounding))).toBeGreaterThanOrEqual(3);
+    for (const face of colors.faces) expect(contrast(face, colors.background)).toBeGreaterThanOrEqual(3);
+  }
 });
 
 test("completes sample analysis through SVG export", async ({ page }, testInfo) => {
@@ -59,6 +100,17 @@ test("completes sample analysis through SVG export", async ({ page }, testInfo) 
   await page.getByRole("button", { name: /Confirm and continue/i }).click();
   await page.getByRole("button", { name: /Generate 1:1 dieline/i }).click();
   await expect(page.getByText(/0 errors.*0 warnings/i)).toBeVisible();
+
+  const lightMode = page.getByTitle("Switch to light mode");
+  if (await lightMode.count()) await lightMode.click();
+  const unselectedPanel = page.locator(".panel-shape:not(.selected)").first();
+  await expect(unselectedPanel).toBeVisible();
+  const panelStyle = await unselectedPanel.evaluate((panel) => {
+    const style = getComputedStyle(panel);
+    return { stroke: style.stroke, width: Number.parseFloat(style.strokeWidth) };
+  });
+  expect(panelStyle.stroke).not.toBe("none");
+  expect(panelStyle.width).toBeGreaterThanOrEqual(0.2);
 
   await page.getByRole("button", { name: "Validate and export", exact: true }).click();
   await page.getByRole("tab", { name: /Export/i }).click();

@@ -18,13 +18,13 @@ export default defineConfig({
     ["html", { open: "never", outputFolder: "work/playwright-report" }],
   ],
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: process.env.PDG_E2E_URL ?? "http://127.0.0.1:5173",
     colorScheme: "dark",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "npm run desktop:serve -- --host 127.0.0.1 --port 5173",
+    command: "npm run dev -- --host 127.0.0.1 --port 5173",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: true,
     timeout: 120_000,

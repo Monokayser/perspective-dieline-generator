@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const cssUrl = new URL("../app/globals.css", import.meta.url);
+const cssUrl = new URL("../src/styles/globals.css", import.meta.url);
 
 test("typography and compact layouts retain robust cross-platform fallbacks", async () => {
   const css = await readFile(cssUrl, "utf8");
@@ -25,7 +25,20 @@ test("accessibility preferences have explicit rendering contracts", async () => 
 
 test("production source excludes starter authentication and database code", async () => {
   const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
-  const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(packageJson, /drizzle|next-auth|openai\/chatgpt/i);
-  assert.doesNotMatch(worker, /D1Database|R2Bucket|\/api\//);
+  assert.doesNotMatch(packageJson, /drizzle|next-auth|openai\/chatgpt|vinext|cloudflare|wrangler/i);
+});
+
+test("application mark and dieline panels use explicit theme-aware tokens", async () => {
+  const css = await readFile(cssUrl, "utf8");
+  for (const token of [
+    "--app-mark-background",
+    "--app-mark-face-top",
+    "--app-mark-face-left",
+    "--app-mark-face-right",
+    "--app-mark-border",
+    "--dieline-panel-fill",
+    "--dieline-panel-stroke",
+  ]) {
+    assert.match(css, new RegExp(`${token}:`));
+  }
 });
