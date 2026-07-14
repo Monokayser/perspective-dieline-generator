@@ -15,8 +15,8 @@ import { saveCurrentProject } from "../lib/project-actions";
 import { useProjectStore } from "../store/project-store";
 
 export function Workbench() {
-  const [leftWidth, setLeftWidth] = useState(278);
-  const [rightWidth, setRightWidth] = useState(316);
+  const [leftWidth, setLeftWidth] = useState(304);
+  const [rightWidth, setRightWidth] = useState(336);
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [recovery, setRecovery] = useState<ProjectDocument | null>(null);
@@ -26,6 +26,7 @@ export function Workbench() {
   const [compactPanels, setCompactPanels] = useState(false);
   const {
     theme,
+    phase,
     projectName,
     imageDataUrl,
     dirty,
@@ -36,7 +37,6 @@ export function Workbench() {
     zoom,
     toDocument,
     loadProject,
-    setTool,
     setZoom,
     setPan,
     undo,
@@ -92,6 +92,15 @@ export function Workbench() {
   }, [compactPanels, leftDrawerOpen, rightDrawerOpen]);
 
   useEffect(() => {
+    if (!compactPanels) return;
+    const timer = window.setTimeout(() => {
+      if (phase === "deliver") { setRightDrawerOpen(true); setLeftDrawerOpen(false); }
+      else { setLeftDrawerOpen(true); setRightDrawerOpen(false); }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [compactPanels, phase]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName;
       const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
@@ -102,8 +111,6 @@ export function Workbench() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); undo(); }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") { event.preventDefault(); redo(); }
       if (typing) return;
-      if (event.key.toLowerCase() === "v") setTool("Select");
-      if (event.key.toLowerCase() === "a") setTool("Direct select");
       if (event.key === "Delete" || event.key === "Backspace") deleteSelected();
       if (event.key === "+" || event.key === "=") setZoom(zoom * 1.1);
       if (event.key === "-") setZoom(zoom / 1.1);
@@ -112,14 +119,14 @@ export function Workbench() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteSelected, redo, setPan, setTool, setZoom, undo, zoom]);
+  }, [deleteSelected, redo, setPan, setZoom, undo, zoom]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (!resizeRef.current) return;
       const delta = event.clientX - resizeRef.current.startX;
-      if (resizeRef.current.side === "left") setLeftWidth(Math.max(240, Math.min(420, resizeRef.current.startWidth + delta)));
-      else setRightWidth(Math.max(270, Math.min(440, resizeRef.current.startWidth - delta)));
+      if (resizeRef.current.side === "left") setLeftWidth(Math.max(280, Math.min(420, resizeRef.current.startWidth + delta)));
+      else setRightWidth(Math.max(300, Math.min(440, resizeRef.current.startWidth - delta)));
     };
     const stop = () => { resizeRef.current = null; document.body.classList.remove("resizing"); };
     window.addEventListener("pointermove", move);
@@ -148,9 +155,9 @@ export function Workbench() {
           <button ref={rightDrawerButton} aria-label="Open properties and export" aria-expanded={rightDrawerOpen} aria-controls="properties-panel" onClick={() => { setRightDrawerOpen(true); setLeftDrawerOpen(false); }}>Inspect <PanelRightOpen size={16} /></button>
         </div>
         <ToolPanel inert={readOnly || (compactPanels && !leftDrawerOpen)} />
-        <button className="panel-resizer left-resizer" role="separator" aria-orientation="vertical" aria-valuemin={240} aria-valuemax={420} aria-valuenow={leftWidth} aria-label="Resize tools panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setLeftWidth(Math.max(240, leftWidth - 10)); if (event.key === "ArrowRight") setLeftWidth(Math.min(420, leftWidth + 10)); }} onPointerDown={(event) => beginResize("left", event)} />
+        <button className="panel-resizer left-resizer" role="separator" aria-orientation="vertical" aria-valuemin={280} aria-valuemax={420} aria-valuenow={leftWidth} aria-label="Resize tools panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setLeftWidth(Math.max(280, leftWidth - 10)); if (event.key === "ArrowRight") setLeftWidth(Math.min(420, leftWidth + 10)); }} onPointerDown={(event) => beginResize("left", event)} />
         <CanvasWorkspace />
-        <button className="panel-resizer right-resizer" role="separator" aria-orientation="vertical" aria-valuemin={270} aria-valuemax={440} aria-valuenow={rightWidth} aria-label="Resize properties panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setRightWidth(Math.min(440, rightWidth + 10)); if (event.key === "ArrowRight") setRightWidth(Math.max(270, rightWidth - 10)); }} onPointerDown={(event) => beginResize("right", event)} />
+        <button className="panel-resizer right-resizer" role="separator" aria-orientation="vertical" aria-valuemin={300} aria-valuemax={440} aria-valuenow={rightWidth} aria-label="Resize properties panel" onKeyDown={(event) => { if (event.key === "ArrowLeft") setRightWidth(Math.min(440, rightWidth + 10)); if (event.key === "ArrowRight") setRightWidth(Math.max(300, rightWidth - 10)); }} onPointerDown={(event) => beginResize("right", event)} />
         <PropertiesPanel inert={compactPanels && !rightDrawerOpen} />
         {(leftDrawerOpen || rightDrawerOpen) && <button className="drawer-backdrop" aria-label="Close side panel" onClick={() => { const restore = leftDrawerOpen ? leftDrawerButton.current : rightDrawerButton.current; setLeftDrawerOpen(false); setRightDrawerOpen(false); window.setTimeout(() => restore?.focus()); }} />}
       </div>

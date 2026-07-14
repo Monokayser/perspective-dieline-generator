@@ -21,6 +21,39 @@ const dataUrlToBlob = async (dataUrl: string) => {
   return response.blob();
 };
 
+const analysisRequest = (jobId: string, image: ImageBitmap) => {
+  if (typeof OffscreenCanvas !== "undefined") {
+    return {
+      message: { version: 1 as const, type: "analyse" as const, jobId, image },
+      transfer: [image] satisfies Transferable[],
+    };
+  }
+
+  const maxDimension = 4096;
+  const sourceWidth = image.width;
+  const sourceHeight = image.height;
+  const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("Canvas analysis is not available in this browser.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  image.close();
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  return {
+    message: {
+      version: 1 as const,
+      type: "analyse" as const,
+      jobId,
+      imageData,
+      sourceWidth,
+      sourceHeight,
+    },
+    transfer: [imageData.data.buffer as ArrayBuffer] satisfies Transferable[],
+  };
+};
+
 export const analyseImage = async (
   imageDataUrl: string,
   onProgress: (progress: number, stage: string) => void,
@@ -30,6 +63,7 @@ export const analyseImage = async (
   onProgress(0.03, "Loading local vision engine");
   const image = await createImageBitmap(await dataUrlToBlob(imageDataUrl), { imageOrientation: "from-image" });
   const analysisWorker = getWorker();
+  const request = analysisRequest(jobId, image);
   return new Promise<ImageAnalysis>((resolve, reject) => {
     const cleanup = () => {
       analysisWorker.removeEventListener("message", handleMessage);
@@ -64,7 +98,7 @@ export const analyseImage = async (
       reject(new Error("Local analysis exceeded the two-minute safety timeout. Try a smaller image or continue manually."));
     }, 120_000);
     activeJob = { id: jobId, reject: (error) => { cleanup(); reject(error); }, timer };
-    analysisWorker.postMessage({ version: 1, type: "analyse", jobId, image }, [image]);
+    analysisWorker.postMessage(request.message, request.transfer);
   });
 };
 

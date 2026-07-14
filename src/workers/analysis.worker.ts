@@ -163,22 +163,33 @@ const tryOpenCvBounds = async (imageData: ImageData): Promise<CvBounds> => {
   }
 };
 
-const analyse = async (jobId: string, image: ImageBitmap) => {
+const analyse = async (
+  jobId: string,
+  image: ImageBitmap | ImageData,
+  originalWidth?: number,
+  originalHeight?: number,
+) => {
   const maxDimension = 4096;
-  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-  const canvas = new OffscreenCanvas(width, height);
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) throw new Error("Canvas analysis is not available in this browser.");
-  context.drawImage(image, 0, 0, width, height);
-  const sourceWidth = image.width;
-  const sourceHeight = image.height;
-  image.close();
+  const sourceWidth = originalWidth ?? image.width;
+  const sourceHeight = originalHeight ?? image.height;
+  const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+  const hasPixels = "data" in image;
+  const width = hasPixels ? image.width : Math.max(1, Math.round(image.width * scale));
+  const height = hasPixels ? image.height : Math.max(1, Math.round(image.height * scale));
+  let imageData: ImageData;
+  if (hasPixels) {
+    imageData = image;
+  } else {
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Canvas analysis is not available in this browser.");
+    context.drawImage(image, 0, 0, width, height);
+    image.close();
+    imageData = context.getImageData(0, 0, width, height);
+  }
   progress(jobId, 0.12, "Decoding and normalising image");
   if (shouldCancel(jobId)) return;
 
-  const imageData = context.getImageData(0, 0, width, height);
   const { data } = imageData;
   const grayscale = new Uint8Array(width * height);
   let brightnessSum = 0;
@@ -366,7 +377,9 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
   }
   cancelledJobs.delete(request.jobId);
   const operation = request.type === "analyse"
-    ? analyse(request.jobId, request.image)
+    ? ("image" in request
+      ? analyse(request.jobId, request.image)
+      : analyse(request.jobId, request.imageData, request.sourceWidth, request.sourceHeight))
     : Promise.resolve().then(() => request.type === "preview"
       ? preview(request.jobId, request.image, request.settings)
       : rectify(request.jobId, request.image, request.corners));

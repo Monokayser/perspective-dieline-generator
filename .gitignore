@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -52,3 +54,5 @@ release/
 # local QA state and private reference material
 .local-dev.*
 /box-packaging-die-cut-template-design-3d-mock-up-2AH049J.jpg
+/REF.png
+/REF2.png

@@ -2,13 +2,14 @@
 
 Local-first software for turning a perspective package photograph into confirmed measurements and an editable, 1:1 vector dieline. The same React/TypeScript workbench runs as a public Sites web app and a Tauri 2 Windows desktop app.
 
-[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.0.2 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.0.2/Perspective-Dieline-Generator-Setup-v1.0.2.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.0.2) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
+[Open the web app](https://perspective-dieline-generator.circleofexpose.chatgpt.site) | [Windows v1.1.0 download](https://github.com/Monokayser/perspective-dieline-generator/releases/download/v1.1.0/Perspective-Dieline-Generator-Setup-v1.1.0.exe) | [GitHub release](https://github.com/Monokayser/perspective-dieline-generator/releases/tag/v1.1.0) | [User guide](docs/USER_GUIDE.md) | [Test report](docs/TEST_REPORT.md)
 
 ![Validated print-preview workspace](docs/screenshots/print-preview.png)
 
-## What ships in v1.0.2
+## What ships in v1.1.0
 
-- Eight-stage workflow: Upload, Detect, Correct, Measure, Generate, Edit, Validate, Export.
+- Five focused phases: Source, Analyze, Measure, Design, and Deliver. Each phase shows only the controls needed for that part of the job.
+- Functional image preparation for rotation, horizontal/vertical flips, brightness, contrast, and saturation. The prepared bitmap is used for display and analysis while the untouched original stays in the project.
 - Cancellable local worker analysis with lazy OpenCV.js loading, deterministic fallback analysis, normalized annotations, quality warnings, confidence scoring, previews, and quadrilateral rectification.
 - Parametric rectangular carton, cube, straight tuck, reverse tuck, sleeve, mailer, triangular closure, and custom starting structures.
 - Native SVG editing, stable semantic IDs, layers, selection transforms, undo/redo, validation, and 1:1 export.
@@ -16,7 +17,7 @@ Local-first software for turning a perspective package photograph into confirmed
 - Native Windows Open, Save, and Save As dialogs; Ctrl+S reuses the chosen project path while every export lets the user choose its PC folder and filename.
 - Strict, versioned `.pdgproj` archives with traversal, expansion, entry-count, compression-ratio, schema, and unsafe-content defenses.
 - IndexedDB recovery on web; native file dialogs and private recovery storage in the Tauri desktop shell.
-- Responsive light/dark UI with keyboard support, focus-managed drawers/dialogs, forced-colors, increased-contrast, reduced-motion, safe-area, and screen-reader behavior.
+- Premium dark and polished light themes with self-hosted Inter, platform fallbacks, labeled inspector tabs, keyboard support, focus-managed drawers/dialogs, forced-colors, increased-contrast, reduced-motion, safe-area, and screen-reader behavior down to 360 px.
 
 Images are never sent to an application backend. A single image cannot reveal hidden dimensions, so inferred proportions never become confirmed manufacturing measurements automatically.
 
@@ -28,7 +29,7 @@ The web app uses the browser's download behavior because websites cannot request
 
 ## Current Windows release status
 
-The public v1.0.2 Windows package is **unsigned** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. A signed build remains gated on a trusted certificate.
+The public v1.1.0 Windows package is **unsigned** because no trusted Authenticode certificate was available in the release environment. Its source, installer behavior, portable package, and checksums were tested, but Windows SmartScreen may warn before launch. Verify the SHA-256 value in the release's `SHA256SUMS.txt` before running it. No Authenticode claim is made for this build.
 
 ## Development
 
@@ -39,6 +40,7 @@ npm ci
 npm run check
 npm run audit:release
 npm run test:coverage
+npm run test:e2e
 npm run desktop:web
 npm run desktop:build
 ```
@@ -64,9 +66,13 @@ Canonical geometry uses double-precision millimetres. Image annotations are norm
 
 See [Calibration](docs/CALIBRATION_GUIDE.md), [Architecture](docs/ARCHITECTURE.md), [CV pipeline](docs/COMPUTER_VISION.md), [Templates](docs/TEMPLATES.md), [Privacy and limitations](docs/PRIVACY_AND_LIMITATIONS.md), [Security](SECURITY.md), and [Troubleshooting](docs/TROUBLESHOOTING.md).
 
-## Reference image
+## Screenshots
 
-The supplied watermarked Alamy image was used only as private structural guidance. It is not included in the application, fixtures, samples, screenshots, installers, or public deployment.
+![Five-phase analysis workspace](docs/screenshots/analysis-workspace.png)
+
+![Responsive 360 px workbench](docs/screenshots/mobile-workbench.png)
+
+The supplied visual references were used only as private design guidance. They are not included in the application, fixtures, samples, screenshots, installers, or public deployment.
 
 ## License
 

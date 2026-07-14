@@ -1,20 +1,23 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useProjectStore, WORKFLOW_STAGES } from "../store/project-store";
+import { useProjectStore, WORKFLOW_PHASES } from "../store/project-store";
 
 export function WorkflowBar() {
-  const { stage, maxStage, setStage } = useProjectStore();
+  const { phase, maxPhase, setPhase, setInspectorTab } = useProjectStore();
+  const phaseIndex = WORKFLOW_PHASES.findIndex((item) => item.id === phase);
+  const maxIndex = WORKFLOW_PHASES.findIndex((item) => item.id === maxPhase);
   return (
     <nav className="workflow-bar" aria-label="Project workflow">
-      {WORKFLOW_STAGES.map((label, index) => {
-        const complete = index < stage;
-        const active = index === stage;
-        const available = index <= maxStage;
+      {WORKFLOW_PHASES.map((item, index) => {
+        const complete = index < phaseIndex;
+        const active = item.id === phase;
+        const available = index <= maxIndex;
         return (
-          <button key={label} className={`${complete ? "complete" : ""} ${active ? "active" : ""}`} disabled={!available} onClick={() => setStage(index)} aria-current={active ? "step" : undefined}>
+          <button key={item.id} className={`${complete ? "complete" : ""} ${active ? "active" : ""}`} disabled={!available} onClick={() => { setPhase(item.id); if (item.id === "deliver") setInspectorTab("validate"); }} aria-current={active ? "step" : undefined} title={item.description}>
             <span>{complete ? <Check size={12} /> : index + 1}</span>
-            <b>{label}</b>
+            <b>{item.label}</b>
+            <small>{item.description}</small>
           </button>
         );
       })}

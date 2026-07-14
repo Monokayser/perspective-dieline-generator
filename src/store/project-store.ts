@@ -18,8 +18,23 @@ import type {
   ValidationIssue,
 } from "../domain/types";
 import { validateDieline } from "../domain/validation";
+import { prepareImage } from "../lib/prepare-image";
 
-export const WORKFLOW_STAGES = ["Upload", "Detect", "Correct", "Measure", "Generate", "Edit", "Validate", "Export"] as const;
+export type WorkflowPhaseId = "source" | "analyze" | "measure" | "design" | "deliver";
+export type InspectorTab = "properties" | "layers" | "validate" | "export";
+
+export const WORKFLOW_PHASES: ReadonlyArray<{ id: WorkflowPhaseId; label: string; description: string }> = [
+  { id: "source", label: "Source", description: "Upload and prepare" },
+  { id: "analyze", label: "Analyze", description: "Detect and correct" },
+  { id: "measure", label: "Measure", description: "Calibrate dimensions" },
+  { id: "design", label: "Design", description: "Generate and edit" },
+  { id: "deliver", label: "Deliver", description: "Validate and export" },
+];
+
+const phaseIndex = (phase: WorkflowPhaseId) => WORKFLOW_PHASES.findIndex((item) => item.id === phase);
+const furthestPhase = (current: WorkflowPhaseId, candidate: WorkflowPhaseId) => phaseIndex(candidate) > phaseIndex(current) ? candidate : current;
+const phaseFromLegacyStage = (stage: number): WorkflowPhaseId => stage <= 0 ? "source" : stage <= 2 ? "analyze" : stage === 3 ? "measure" : stage <= 5 ? "design" : "deliver";
+const legacyStageFromPhase = (phase: WorkflowPhaseId) => ({ source: 0, analyze: 2, measure: 3, design: 5, deliver: 7 })[phase];
 
 type Snapshot = {
   dimensions: PackageDimensions;
@@ -35,8 +50,9 @@ type ProjectStore = {
   projectId: string;
   projectName: string;
   createdAt: string;
-  stage: number;
-  maxStage: number;
+  phase: WorkflowPhaseId;
+  maxPhase: WorkflowPhaseId;
+  inspectorTab: InspectorTab;
   theme: "light" | "dark";
   unit: Unit;
   decimalPrecision: number;
@@ -54,7 +70,6 @@ type ProjectStore = {
   dieline: DielineModel | null;
   validationIssues: ValidationIssue[];
   selectedObjectId: string | null;
-  selectedTool: string;
   zoom: number;
   pan: { x: number; y: number };
   history: Snapshot[];
@@ -66,7 +81,8 @@ type ProjectStore = {
   projectFilePath: string | null;
   operation: OperationState | null;
   setProjectName(name: string): void;
-  setStage(stage: number): void;
+  setPhase(phase: WorkflowPhaseId): void;
+  setInspectorTab(tab: InspectorTab): void;
   setTheme(theme: "light" | "dark"): void;
   setUnit(unit: Unit): void;
   setTemplate(templateId: TemplateId): void;
@@ -89,7 +105,6 @@ type ProjectStore = {
   duplicateSelected(): void;
   deleteSelected(): void;
   setSelectedPathKind(kind: EdgeKind): void;
-  setTool(tool: string): void;
   setZoom(zoom: number): void;
   setPan(x: number, y: number): void;
   undo(): void;
@@ -127,8 +142,9 @@ const initialIdentity = createIdentity();
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   ...initialIdentity,
-  stage: 0,
-  maxStage: 0,
+  phase: "source",
+  maxPhase: "source",
+  inspectorTab: "properties",
   theme: "dark",
   unit: "mm",
   decimalPrecision: 2,
@@ -146,7 +162,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   dieline: null,
   validationIssues: [],
   selectedObjectId: null,
-  selectedTool: "Select",
   zoom: 1,
   pan: { x: 0, y: 0 },
   history: [],
@@ -162,10 +177,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     if (get().readOnly) return;
     set({ projectName: projectName.slice(0, 160), dirty: true });
   },
-  setStage: (stage) => {
-    const next = Math.max(0, Math.min(7, stage));
-    if (next <= get().maxStage) set({ stage: next });
+  setPhase: (phase) => {
+    if (phaseIndex(phase) <= phaseIndex(get().maxPhase)) set({ phase });
   },
+  setInspectorTab: (inspectorTab) => set({ inspectorTab }),
   setTheme: (theme) => {
     localStorage.setItem("pdg-theme", theme);
     set({ theme });
@@ -190,8 +205,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     imageDataUrl,
     imageFilename,
     imageMimeType,
-    stage: 1,
-    maxStage: Math.max(1, get().maxStage),
+    phase: "source",
+    maxPhase: furthestPhase(get().maxPhase, "analyze"),
     analysis: null,
     dieline: null,
     validationIssues: [],
@@ -207,8 +222,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     imageMimeType: null,
     analysis: null,
     dieline: null,
-    stage: 0,
-    maxStage: 0,
+    phase: "source",
+    maxPhase: "source",
     validationIssues: [],
     dirty: true,
     });
@@ -221,12 +236,18 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       return;
     }
     const operationId = get().beginOperation("analysis", "Analysing package image", "Starting local analysis");
-    set({ analysisRunning: true, analysisProgress: 0, analysisStage: "Starting local analysis", analysisError: null, stage: 1 });
+    set({ analysisRunning: true, analysisProgress: 0, analysisStage: "Preparing source image", analysisError: null, phase: "analyze" });
     try {
-      const analysis = await analyseImage(imageDataUrl, (analysisProgress, analysisStage) => {
-        set({ analysisProgress, analysisStage });
-        get().updateOperation(operationId, { phase: "processing", progress: analysisProgress, status: analysisStage });
-      });
+      const prepared = await prepareImage(imageDataUrl, get().preprocess);
+      let analysis: ImageAnalysis;
+      try {
+        analysis = await analyseImage(prepared.url, (analysisProgress, analysisStage) => {
+          set({ analysisProgress, analysisStage });
+          get().updateOperation(operationId, { phase: "processing", progress: analysisProgress, status: analysisStage });
+        });
+      } finally {
+        prepared.revoke();
+      }
       const topCandidate = analysis.candidates[0]?.templateId;
       set({
         analysis,
@@ -234,8 +255,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         analysisRunning: false,
         analysisProgress: 1,
         analysisStage: "Analysis complete",
-        stage: 2,
-        maxStage: Math.max(3, get().maxStage),
+        phase: "analyze",
+        maxPhase: furthestPhase(get().maxPhase, "measure"),
         notice: { id: crypto.randomUUID(), tone: analysis.confidence >= 0.55 ? "success" : "warning", message: analysis.confidence >= 0.55 ? "Package structure detected locally." : "Detection needs manual confirmation." },
         dirty: true,
       });
@@ -247,7 +268,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         return;
       }
       const message = error instanceof Error ? error.message : "Image analysis failed.";
-      set({ analysisRunning: false, analysisError: message, analysisStage: "Manual correction available", maxStage: Math.max(3, get().maxStage), notice: { id: crypto.randomUUID(), tone: "error", message } });
+      set({ analysisRunning: false, analysisError: message, analysisStage: "Manual correction available", maxPhase: furthestPhase(get().maxPhase, "measure"), notice: { id: crypto.randomUUID(), tone: "error", message } });
       get().failOperation(operationId, message);
     }
   },
@@ -267,8 +288,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   }),
   approveFace: (id) => set((state) => state.analysis && !state.readOnly ? ({
     analysis: { ...state.analysis, faces: state.analysis.faces.map((face) => face.id === id ? { ...face, approved: true, confidence: 1 } : face) },
-    maxStage: Math.max(3, state.maxStage),
-    stage: 3,
+    maxPhase: furthestPhase(state.maxPhase, "measure"),
+    phase: "analyze",
     dirty: true,
   }) : state),
   updateDimension: (key, valueMm) => {
@@ -288,8 +309,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
   confirmDimensions: () => set((state) => state.readOnly ? state : ({
     dimensions: Object.fromEntries(Object.entries(state.dimensions).map(([key, measurement]) => [key, { ...measurement, provenance: "confirmed", confidence: 1 }])) as unknown as PackageDimensions,
-    maxStage: Math.max(4, state.maxStage),
-    stage: 4,
+    maxPhase: furthestPhase(state.maxPhase, "design"),
+    phase: "design",
     notice: { id: crypto.randomUUID(), tone: "success", message: "Measurements confirmed. The template can now generate at 1:1 scale." },
     dirty: true,
   })),
@@ -310,8 +331,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       future: [],
       dieline,
       validationIssues: issues,
-      stage: 5,
-      maxStage: 7,
+      phase: "design",
+      maxPhase: "deliver",
+      inspectorTab: "properties",
       selectedObjectId: null,
       notice: { id: crypto.randomUUID(), tone: "success", message: `${template.name} generated as editable vector geometry.` },
       dirty: true,
@@ -321,7 +343,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   regenerate: () => get().generate(),
   validate: () => {
     const validationIssues = validateDieline(get().dieline);
-    set({ validationIssues, stage: get().dieline ? 6 : get().stage, notice: { id: crypto.randomUUID(), tone: validationIssues.some((item) => item.severity === "error") ? "error" : "success", message: validationIssues.some((item) => item.severity === "error") ? "Validation found blocking geometry errors." : "Validation completed. No blocking geometry errors." } });
+    set({ validationIssues, phase: get().dieline ? "deliver" : get().phase, inspectorTab: "validate", notice: { id: crypto.randomUUID(), tone: validationIssues.some((item) => item.severity === "error") ? "error" : "success", message: validationIssues.some((item) => item.severity === "error") ? "Validation found blocking geometry errors." : "Validation completed. No blocking geometry errors." } });
     return validationIssues;
   },
   toggleLayer: (id, field) => set((state) => state.dieline && !state.readOnly ? ({
@@ -392,7 +414,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       dirty: true,
     };
   }),
-  setTool: (selectedTool) => set({ selectedTool }),
   setZoom: (zoom) => set({ zoom: Math.max(0.2, Math.min(5, zoom)) }),
   setPan: (x, y) => set({ pan: { x, y } }),
   undo: () => {
@@ -442,8 +463,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const identity = createIdentity();
     set({
       ...identity,
-      stage: 0,
-      maxStage: 0,
+      phase: "source",
+      maxPhase: "source",
+      inspectorTab: "properties",
       templateId: "rectangular-carton",
       dimensions: createDefaultDimensions(),
       preprocess: { ...DEFAULT_PREPROCESS },
@@ -468,8 +490,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     projectId: document.projectId,
     projectName: document.projectName,
     createdAt: document.createdAt,
-    stage: document.stage,
-    maxStage: document.dieline ? 7 : document.analysis ? 4 : document.sourceImage ? 1 : 0,
+    phase: phaseFromLegacyStage(document.stage),
+    maxPhase: document.dieline ? "deliver" : document.analysis ? "design" : document.sourceImage ? "analyze" : "source",
+    inspectorTab: document.stage >= 6 ? (document.stage === 7 ? "export" : "validate") : "properties",
     theme: document.display.theme,
     unit: document.display.unit,
     decimalPrecision: document.display.decimalPrecision,
@@ -499,7 +522,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       projectName: state.projectName,
       createdAt: state.createdAt,
       updatedAt: new Date().toISOString(),
-      stage: state.stage,
+      stage: legacyStageFromPhase(state.phase),
       templateId: state.templateId,
       dimensions: cloneDimensions(state.dimensions),
       preprocess: { ...state.preprocess },

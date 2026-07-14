@@ -120,7 +120,7 @@ export function TopBar() {
               <div><b>3</b><span><strong>Confirm measurements</strong><p>At least one calibrated edge and all required template dimensions must be confirmed.</p></span></div>
               <div><b>4</b><span><strong>Generate and validate</strong><p>Review the 1:1 vector net, resolve errors, then export named SVG layers.</p></span></div>
             </div>
-            <div className="shortcut-list"><span><kbd>V</kbd> Select</span><span><kbd>A</kbd> Direct select</span><span><kbd>Ctrl Z</kbd> Undo</span><span><kbd>Ctrl S</kbd> Save project</span><span><kbd>Ctrl Shift S</kbd> Save as</span><span><kbd>+</kbd> Zoom in</span><span><kbd>0</kbd> Fit</span></div>
+            <div className="shortcut-list"><span><kbd>Ctrl Z</kbd> Undo</span><span><kbd>Ctrl Y</kbd> Redo</span><span><kbd>Ctrl S</kbd> Save project</span><span><kbd>Ctrl Shift S</kbd> Save as</span><span><kbd>+</kbd> Zoom in</span><span><kbd>0</kbd> Fit</span></div>
             <div className="limitation-note"><strong>Accuracy note</strong><p>A single photograph cannot reveal hidden measurements. Estimated values are never treated as manufacturing dimensions until you confirm them.</p></div>
           </section>
         </div>

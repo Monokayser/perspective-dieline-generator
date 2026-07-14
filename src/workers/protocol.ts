@@ -5,8 +5,10 @@ export type AnalysisRequest = {
   version: 1;
   type: "analyse";
   jobId: string;
-  image: ImageBitmap;
-};
+} & (
+  | { image: ImageBitmap }
+  | { imageData: ImageData; sourceWidth: number; sourceHeight: number }
+);
 
 export type CancelRequest = { version: 1; type: "cancel"; jobId: string };
 export type PreviewRequest = { version: 1; type: "preview"; jobId: string; image: ImageBitmap; settings: PreprocessSettings };

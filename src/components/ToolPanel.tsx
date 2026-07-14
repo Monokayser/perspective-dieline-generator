@@ -4,12 +4,10 @@ import { useRef, useState, type DragEvent } from "react";
 import {
   Box,
   Check,
-  Crop,
   FlipHorizontal2,
   FlipVertical2,
   ImagePlus,
   LoaderCircle,
-  Move3D,
   RotateCcw,
   RotateCw,
   Ruler,
@@ -30,31 +28,30 @@ const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const readableKey = (key: string) => key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase());
 
-const toolButtons = ["Select", "Corner", "Edge", "Face", "Calibration", "Guide"];
-
 export function ToolPanel({ inert = false }: { inert?: boolean }) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [calibrationLength, setCalibrationLength] = useState("80");
   const {
-    stage,
+    phase,
     unit,
     imageDataUrl,
     analysis,
+    dieline,
     analysisRunning,
     analysisError,
     preprocess,
     templateId,
     dimensions,
-    selectedTool,
     setImage,
     clearImage,
     runAnalysis,
     cancelAnalysis,
     setPreprocess,
     setTemplate,
-    setTool,
+    setPhase,
+    setInspectorTab,
     updateDimension,
     confirmDimensions,
     approveFace,
@@ -117,7 +114,7 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
 
   return (
     <aside id="workflow-tools-panel" className="tool-panel" aria-label="Workflow tools" inert={inert || undefined}>
-      <section className="panel-section upload-section">
+      {phase === "source" && <section className="panel-section upload-section">
         <div className="section-heading"><span><ImagePlus size={16} /> Source image</span><span className="section-step">01</span></div>
         {!imageDataUrl ? (
           <>
@@ -148,18 +145,16 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
             <button title="Remove source" onClick={clearImage}><X size={15} /></button>
           </div>
         )}
-      </section>
+      </section>}
 
-      {imageDataUrl && (
+      {phase === "source" && imageDataUrl && (
         <section className="panel-section">
           <div className="section-heading"><span><SlidersHorizontal size={16} /> Prepare image</span><span className="section-step">02</span></div>
-          <div className="compact-tool-grid">
+          <div className="compact-tool-grid compact-tool-grid-four">
             <button title="Rotate left" onClick={() => setPreprocess({ rotation: preprocess.rotation - 90 })}><RotateCcw size={15} /><span>Left</span></button>
             <button title="Rotate right" onClick={() => setPreprocess({ rotation: preprocess.rotation + 90 })}><RotateCw size={15} /><span>Right</span></button>
             <button title="Flip horizontally" className={preprocess.flipX ? "active" : ""} onClick={() => setPreprocess({ flipX: !preprocess.flipX })}><FlipHorizontal2 size={15} /><span>Flip H</span></button>
             <button title="Flip vertically" className={preprocess.flipY ? "active" : ""} onClick={() => setPreprocess({ flipY: !preprocess.flipY })}><FlipVertical2 size={15} /><span>Flip V</span></button>
-            <button title="Crop mode" onClick={() => setTool("Crop")}><Crop size={15} /><span>Crop</span></button>
-            <button title="Perspective correction" onClick={() => setTool("Perspective")}><Move3D size={15} /><span>Correct</span></button>
           </div>
           {(["brightness", "contrast", "saturation"] as const).map((key) => (
             <label className="range-row" key={key}>
@@ -168,18 +163,24 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
               <output>{preprocess[key]}%</output>
             </label>
           ))}
-          <div className="preview-toggles">
-            <button className={preprocess.grayscale ? "active" : ""} onClick={() => setPreprocess({ grayscale: !preprocess.grayscale })}>Grayscale</button>
-            <button className={preprocess.threshold ? "active" : ""} onClick={() => setPreprocess({ threshold: !preprocess.threshold })}>Threshold</button>
-            <button className={preprocess.edgePreview ? "active" : ""} onClick={() => setPreprocess({ edgePreview: !preprocess.edgePreview })}>Edges</button>
-          </div>
+          <details className="advanced-disclosure">
+            <summary>Visual previews</summary>
+            <p>Display-only aids. They do not change local detection.</p>
+            <div className="preview-toggles">
+              <button className={preprocess.grayscale ? "active" : ""} onClick={() => setPreprocess({ grayscale: !preprocess.grayscale })}>Grayscale</button>
+              <button className={preprocess.threshold ? "active" : ""} onClick={() => setPreprocess({ threshold: !preprocess.threshold })}>Threshold</button>
+              <button className={preprocess.edgePreview ? "active" : ""} onClick={() => setPreprocess({ edgePreview: !preprocess.edgePreview })}>Edges</button>
+            </div>
+          </details>
           <button className="ghost-button full-width" onClick={() => setPreprocess({ rotation: 0, flipX: false, flipY: false, brightness: 100, contrast: 100, saturation: 100, grayscale: false, threshold: false, edgePreview: false })}><RotateCcw size={14} /> Reset preparation</button>
+          <button className="primary-button full-width" onClick={() => setPhase("analyze")}><ScanLine size={16} /> Continue to Analyze</button>
         </section>
       )}
 
-      {imageDataUrl && (
+      {phase === "analyze" && imageDataUrl && (
         <section className="panel-section">
-          <div className="section-heading"><span><ScanLine size={16} /> Detect package</span><span className="section-step">03</span></div>
+          <div className="phase-context"><span>Source ready</span><button onClick={() => setPhase("source")}>Adjust source</button></div>
+          <div className="section-heading"><span><ScanLine size={16} /> Detect package</span><span className="section-step">02</span></div>
           {!analysisRunning ? (
             <button className="primary-button full-width" onClick={() => void runAnalysis()}><WandSparkles size={16} /> {analysis ? "Rerun local analysis" : "Analyse image locally"}</button>
           ) : (
@@ -200,24 +201,24 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
         </section>
       )}
 
-      {analysis && (
+      {phase === "analyze" && analysis && (
         <section className="panel-section">
-          <div className="section-heading"><span><CrosshairIcon /> Correct structure</span><span className="section-step">04</span></div>
-          <div className="annotation-tools">
-            {toolButtons.map((tool) => <button key={tool} className={selectedTool === tool ? "active" : ""} onClick={() => setTool(tool)}>{tool}</button>)}
-          </div>
+          <div className="section-heading"><span><span aria-hidden="true" className="crosshair-mini">+</span> Correct structure</span><span className="section-step">03</span></div>
+          <p className="privacy-note">Drag numbered corners directly onto the visible package edges, then approve the detected face.</p>
           {analysis.faces.map((face) => (
             <div className="face-review" key={face.id}>
               <span><strong>{readableKey(face.label)} face</strong><small>{Math.round(face.confidence * 100)}% confidence</small></span>
               <button className={face.approved ? "approved" : ""} onClick={() => approveFace(face.id)}><Check size={14} /> {face.approved ? "Approved" : "Approve"}</button>
             </div>
           ))}
+          <button className="primary-button full-width" onClick={() => setPhase("measure")}><Ruler size={16} /> Continue to Measure</button>
         </section>
       )}
 
-      {(stage >= 3 || analysis) && (
+      {phase === "measure" && analysis && (
         <section className="panel-section">
-          <div className="section-heading"><span><Ruler size={16} /> Measurements</span><span className="section-step">05</span></div>
+          <div className="phase-context"><span>Analysis confirmed</span><button onClick={() => setPhase("analyze")}>Review analysis</button></div>
+          <div className="section-heading"><span><Ruler size={16} /> Measurements</span><span className="section-step">04</span></div>
           <div className="calibration-card">
             <strong>Known edge calibration</strong>
             <p>Select an annotated edge, then enter its real length.</p>
@@ -236,14 +237,29 @@ export function ToolPanel({ inert = false }: { inert?: boolean }) {
               </label>
             ))}
           </div>
-          <button className="secondary-button full-width" onClick={confirmDimensions}><Check size={15} /> Confirm required measurements</button>
-          <button className="primary-button full-width" onClick={generate}><Box size={16} /> Generate 1:1 dieline</button>
+          <button className="primary-button full-width" onClick={() => { confirmDimensions(); }}><Check size={15} /> Confirm and continue</button>
+        </section>
+      )}
+
+      {phase === "design" && (
+        <section className="panel-section phase-summary">
+          <div className="section-heading"><span><Box size={16} /> Design dieline</span><span className="section-step">05</span></div>
+          <strong>{getTemplate(templateId).name}</strong>
+          <p>{dieline ? "Your editable 1:1 geometry is ready. Select objects on the canvas and use the inspector for transforms and layers." : "Confirmed measurements are ready to generate an editable 1:1 dieline."}</p>
+          <button className="primary-button full-width" onClick={generate}><Box size={16} /> {dieline ? "Regenerate dieline" : "Generate 1:1 dieline"}</button>
+          {dieline && <button className="secondary-button full-width" onClick={() => { setPhase("deliver"); setInspectorTab("validate"); }}><Check size={15} /> Validate and export</button>}
+        </section>
+      )}
+
+      {phase === "deliver" && (
+        <section className="panel-section phase-summary">
+          <div className="section-heading"><span><Check size={16} /> Deliver</span><span className="section-step">05</span></div>
+          <strong>Production review</strong>
+          <p>Run validation, resolve blocking geometry issues, then choose a production or preview export in the inspector.</p>
+          <button className="primary-button full-width" onClick={() => setInspectorTab("validate")}><Check size={15} /> Open validation</button>
+          <button className="secondary-button full-width" onClick={() => setInspectorTab("export")}><Sparkles size={15} /> Open export</button>
         </section>
       )}
     </aside>
   );
-}
-
-function CrosshairIcon() {
-  return <span aria-hidden="true" className="crosshair-mini">+</span>;
 }

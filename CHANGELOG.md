@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 - 2026-07-14
+
+- Redesigned the workbench as a premium dark-first engineering interface with an equivalent high-contrast light theme.
+- Consolidated the workflow into Source, Analyze, Measure, Design, and Deliver phases with synchronized inspector and drawer state.
+- Added deterministic bitmap preparation for rotation, flips, brightness, contrast, and saturation while preserving the original project image.
+- Removed misleading tool modes, duplicated settings, duplicate project-export actions, and nonfunctional preparation controls.
+- Reorganized exports around primary SVG, production PDF/DXF, and collapsed preview/data formats.
+- Added Chromium, Firefox, and WebKit coverage at 360x800, 768x1024, 1440x900, and 1920x1080, plus complete desktop SVG workflows.
+- Retained the native Windows Save As dialog and existing `.pdgproj` compatibility.
+
 ## 1.0.2 - 2026-07-14
 
 - Removed the obsolete desktop updater endpoint and its broken v1.0.0 download link.
@@ -13,9 +23,9 @@
 - Added clean cancellation handling and actionable Windows errors for invalid paths, denied permissions, duplicate/locked files, missing folders, and full drives.
 - Expanded native save and export pipeline coverage and re-ran the full web and desktop release gates.
 
-## 1.0.0 — 2026-07-14
+## 1.0.0 - 2026-07-14
 
-- Added the eight-stage local-first reconstruction workflow and eight template/custom modes.
+- Added the original eight-stage local-first reconstruction workflow and eight template/custom modes.
 - Added lazy worker analysis, cancellation settlement, timeouts, structured failures, and quality warnings.
 - Added unified progress, cancellation, success, and failure state across analysis, project I/O, validation, and exports.
 - Added deterministic vector SVG/PDF/DXF plus guarded 300 dpi raster and versioned project exports.

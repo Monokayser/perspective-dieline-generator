@@ -1,21 +1,26 @@
-# Perspective Dieline Generator 1.0.2
+# Perspective Dieline Generator 1.1.0
 
-This patch release hardens Windows SVG export while retaining the local-first workflow from perspective package photography to confirmed measurements and editable 1:1 SVG geometry.
+Version 1.1.0 is a focused redesign of the local-first packaging workbench. It keeps the compatible project and export contracts from v1.0.2 while making the complete path from source image to production SVG clearer, faster to scan, and usable down to 360 px.
 
 ## Release highlights
 
-- Lazy, cancellable computer-vision analysis with explicit initialization and processing progress.
-- Deterministic parametric template generation with required-dimension confirmation.
-- Accessible native-SVG editing, validation, responsive drawers, light/dark themes, and print preview.
-- Async SVG, PDF, DXF, 300 dpi PNG/JPG, JSON, and `.pdgproj` exports with progress and format-specific outcomes.
+- Five synchronized phases: Source, Analyze, Measure, Design, and Deliver.
+- Premium near-black engineering UI with restrained violet/cyan focus treatment and an equivalent light theme.
+- Self-hosted Inter Variable with robust system fallbacks, stable type sizes, 16 px mobile form controls, and tabular measurement numerals.
+- Real bitmap preparation for rotation, horizontal/vertical flips, brightness, contrast, and saturation before display and analysis; the original project image remains untouched.
+- Direct draggable annotation correction with misleading cosmetic tool modes removed.
+- Labeled Properties, Layers, Validate, and Export tabs; phase navigation opens the relevant workspace and inspector state automatically.
+- SVG remains the primary export, PDF/DXF are grouped as production formats, and preview/data formats are collapsed until needed.
 - Native Windows project Open/Save/Save As and per-export destination pickers with least-privilege selected-file access.
-- Windows Save dialogs accept any available drive/folder and an edited filename, enforce the expected extension, use native overwrite confirmation, and surface actionable path, permission, locked-file, and disk-space failures.
-- Cancelling an export is a clean no-op and the completion message reports the actual selected filename and path.
-- Hardened project import, newer-version read-only mode, recovery, dependency upgrades, CSP, and zero known npm advisories.
-- Professional package/dieline icon applied to web metadata, executable, installer, shortcuts, and file association.
+- Windows Save dialogs accept any available drive/folder and edited filename, use native overwrite confirmation, and surface actionable path, permission, locked-file, and disk-space failures. Cancel writes nothing.
+- Automated Chromium, Firefox, and WebKit checks at 360x800, 768x1024, 1440x900, and 1920x1080 plus full desktop SVG workflows.
+
+## Windows package
+
+The installer embeds the offline WebView2 runtime so a clean Windows system does not need a separate web-runtime setup. The attached installer and portable ZIP are **unsigned** because a trusted Authenticode certificate was not available. Windows SmartScreen may warn before launch. Verify `SHA256SUMS.txt` before running an artifact; no Authenticode claim is made for this release.
 
 ## Manufacturing and vision limitations
 
-One photograph cannot reveal hidden dimensions. Real-photo accuracy depends on focus, occlusion, reflection, lens distortion, deformation, and manual correction. All required template dimensions must be confirmed, and physical prototypes must be reviewed before manufacturing.
+One photograph cannot reveal hidden dimensions. Real-photo accuracy depends on focus, occlusion, reflection, lens distortion, deformation, and manual correction. Confirm every required dimension and review a physical prototype before manufacturing.
 
-The attached Windows packages are **unsigned** because a trusted Authenticode certificate was not available. Windows SmartScreen may warn before launch; verify the attached `SHA256SUMS.txt` before running the installer. The obsolete in-app updater was removed so every published download now resolves through the verified GitHub release. A signed build remains gated on certificate-backed Authenticode verification. See [Test report](docs/TEST_REPORT.md) and [Deployment](docs/DEPLOYMENT.md).
+See the [test report](docs/TEST_REPORT.md), [user guide](docs/USER_GUIDE.md), and [deployment guide](docs/DEPLOYMENT.md).

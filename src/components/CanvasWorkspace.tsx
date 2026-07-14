@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
-import { Crosshair, Focus, Grid3X3, Maximize2, Minus, MousePointer2, Plus, ScanLine } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
+import { Focus, Grid3X3, Maximize2, Minus, Plus, ScanLine } from "lucide-react";
 import { confidenceLabel, type PanelGeometry, type Point, type VectorPath } from "../domain/types";
+import { prepareImage } from "../lib/prepare-image";
 import { useProjectStore } from "../store/project-store";
 
 const pathData = (points: Point[], closed: boolean) => {
@@ -126,14 +127,23 @@ function ImageCanvas() {
     analysisProgress,
     analysisStage,
     updateAnnotationPoint,
-    selectedTool,
   } = useProjectStore();
   const overlayRef = useRef<SVGSVGElement | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<string | null>(null);
 
   const pointMap = useMemo(() => new Map(analysis?.points.map((point) => [point.id, point]) ?? []), [analysis]);
-  const filter = `brightness(${preprocess.brightness}%) contrast(${preprocess.contrast}%) saturate(${preprocess.saturation}%) ${preprocess.grayscale ? "grayscale(1)" : ""}`;
-  const transform = `rotate(${preprocess.rotation}deg) scaleX(${preprocess.flipX ? -1 : 1}) scaleY(${preprocess.flipY ? -1 : 1})`;
+  const [preparedImage, setPreparedImage] = useState<{ source: string; url: string } | null>(null);
+
+  useEffect(() => {
+    if (!imageDataUrl) return;
+    const controller = new AbortController();
+    let prepared: Awaited<ReturnType<typeof prepareImage>> | null = null;
+    void prepareImage(imageDataUrl, preprocess, controller.signal).then((result) => {
+      prepared = result;
+      setPreparedImage({ source: imageDataUrl, url: result.url });
+    }).catch(() => undefined);
+    return () => { controller.abort(); prepared?.revoke(); };
+  }, [imageDataUrl, preprocess]);
 
   const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>, pointId: string) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -157,10 +167,10 @@ function ImageCanvas() {
         {/* The original user-selected data URL must remain byte-for-byte local and is not eligible for framework image optimisation. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={imageDataUrl}
+          src={preparedImage?.source === imageDataUrl ? preparedImage.url : imageDataUrl}
           alt={`Source package: ${imageFilename ?? "uploaded image"}`}
           className={`source-image ${preprocess.threshold ? "threshold-preview" : ""}`}
-          style={{ filter, transform }}
+          style={{ filter: preprocess.grayscale ? "grayscale(1)" : undefined }}
         />
         {analysis && (
           <svg
@@ -211,7 +221,6 @@ function ImageCanvas() {
           <span className={`confidence-badge confidence-${confidenceLabel(analysis.confidence)}`}><Focus size={14} /> {confidenceLabel(analysis.confidence)} confidence · {Math.round(analysis.confidence * 100)}%</span>
           <span>{analysis.points.length} corners</span>
           <span>{analysis.edges.length} edges</span>
-          <span>{selectedTool}</span>
         </div>
       )}
     </div>
@@ -219,18 +228,16 @@ function ImageCanvas() {
 }
 
 export function CanvasWorkspace() {
-  const { stage, dieline, zoom, setZoom, setPan, pan, selectedTool, setTool } = useProjectStore();
+  const { phase, dieline, zoom, setZoom, setPan, pan } = useProjectStore();
   const [view, setView] = useState<"image" | "dieline" | "preview">("dieline");
   const [showGrid, setShowGrid] = useState(true);
-  const activeView = !dieline || stage < 4 ? "image" : view;
+  const activeView = !dieline || phase === "source" || phase === "analyze" || phase === "measure" ? "image" : view;
   const showDieline = activeView !== "image" && Boolean(dieline);
 
   return (
     <main className="workspace" aria-label="Package analysis and dieline workspace">
       <div className="workspace-toolbar">
         <div className="tool-group" aria-label="Workspace tools">
-          <button className={selectedTool === "Select" ? "active" : ""} aria-pressed={selectedTool === "Select"} title="Select (V)" onClick={() => setTool("Select")}><MousePointer2 size={16} /></button>
-          <button className={selectedTool === "Direct select" ? "active" : ""} aria-pressed={selectedTool === "Direct select"} title="Direct selection (A)" onClick={() => setTool("Direct select")}><Crosshair size={16} /></button>
           <button className={showGrid ? "active" : ""} aria-pressed={showGrid} title="Toggle grid" onClick={() => setShowGrid((value) => !value)}><Grid3X3 size={16} /></button>
         </div>
         <div className="view-tabs" role="tablist" aria-label="Workspace view">

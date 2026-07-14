@@ -9,7 +9,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  FileArchive,
   FileCode2,
   FileImage,
   FileText,
@@ -34,8 +33,6 @@ import { isDesktopApp, safeFilename } from "../lib/files";
 import { validationSummary } from "../domain/validation";
 import { useProjectStore } from "../store/project-store";
 
-type Tab = "properties" | "layers" | "validate" | "export";
-
 const iconForSeverity = (severity: ValidationSeverity) => {
   if (severity === "error") return <AlertCircle size={15} />;
   if (severity === "warning") return <AlertTriangle size={15} />;
@@ -44,7 +41,6 @@ const iconForSeverity = (severity: ValidationSeverity) => {
 };
 
 export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
-  const [tab, setTab] = useState<Tab>("properties");
   const [svgOptions, setSvgOptions] = useState<SvgExportOptions>({ ...DEFAULT_SVG_OPTIONS });
   const {
     projectName,
@@ -52,7 +48,7 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
     dieline,
     validationIssues,
     selectedObjectId,
-    selectedTool,
+    inspectorTab,
     unit,
     operation,
     readOnly,
@@ -65,7 +61,8 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
     deleteSelected,
     setSelectedPathKind,
     validate,
-    setStage,
+    setPhase,
+    setInspectorTab,
     showNotice,
     beginOperation,
     updateOperation,
@@ -108,7 +105,8 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
       }
       completeOperation(operationId, result.path ? `Saved to ${result.path}` : `${result.filename} saved successfully`);
       showNotice("success", result.path ? `${result.filename} saved to ${result.path}` : `${result.filename} downloaded successfully.`);
-      setStage(7);
+      setPhase("deliver");
+      setInspectorTab("export");
     } catch (error) {
       const message = error instanceof Error ? error.message : "The export could not be completed.";
       failOperation(operationId, message);
@@ -119,14 +117,14 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
   return (
     <aside id="properties-panel" className="properties-panel" aria-label="Properties, layers, validation, and export" inert={inert || undefined}>
       <div className="properties-tabs" role="tablist" aria-label="Inspector views">
-        <button id="inspector-tab-properties" role="tab" aria-selected={tab === "properties"} aria-controls="inspector-panel" className={tab === "properties" ? "active" : ""} onClick={() => setTab("properties")} title="Properties"><Settings2 size={16} /><span>Properties</span></button>
-        <button id="inspector-tab-layers" role="tab" aria-selected={tab === "layers"} aria-controls="inspector-panel" className={tab === "layers" ? "active" : ""} onClick={() => setTab("layers")} title="Layers"><Layers3 size={16} /><span>Layers</span></button>
-        <button id="inspector-tab-validate" role="tab" aria-selected={tab === "validate"} aria-controls="inspector-panel" className={tab === "validate" ? "active" : ""} onClick={() => setTab("validate")} title="Validation"><ShieldCheck size={16} /><span>Validate</span>{summary.errors > 0 && <b>{summary.errors}</b>}</button>
-        <button id="inspector-tab-export" role="tab" aria-selected={tab === "export"} aria-controls="inspector-panel" className={tab === "export" ? "active" : ""} onClick={() => setTab("export")} title="Export"><Download size={16} /><span>Export</span></button>
+        <button id="inspector-tab-properties" role="tab" aria-selected={inspectorTab === "properties"} aria-controls="inspector-panel" className={inspectorTab === "properties" ? "active" : ""} onClick={() => setInspectorTab("properties")} title="Properties"><Settings2 size={16} /><span>Properties</span></button>
+        <button id="inspector-tab-layers" role="tab" aria-selected={inspectorTab === "layers"} aria-controls="inspector-panel" className={inspectorTab === "layers" ? "active" : ""} onClick={() => setInspectorTab("layers")} title="Layers"><Layers3 size={16} /><span>Layers</span></button>
+        <button id="inspector-tab-validate" role="tab" aria-selected={inspectorTab === "validate"} aria-controls="inspector-panel" className={inspectorTab === "validate" ? "active" : ""} onClick={() => { setPhase("deliver"); setInspectorTab("validate"); }} title="Validation"><ShieldCheck size={16} /><span>Validate</span>{summary.errors > 0 && <b>{summary.errors}</b>}</button>
+        <button id="inspector-tab-export" role="tab" aria-selected={inspectorTab === "export"} aria-controls="inspector-panel" className={inspectorTab === "export" ? "active" : ""} onClick={() => { setPhase("deliver"); setInspectorTab("export"); }} title="Export"><Download size={16} /><span>Export</span></button>
       </div>
 
-      <div id="inspector-panel" className="properties-content" role="tabpanel" aria-labelledby={`inspector-tab-${tab}`}>
-        {tab === "properties" && (
+      <div id="inspector-panel" className="properties-content" role="tabpanel" aria-labelledby={`inspector-tab-${inspectorTab}`}>
+        {inspectorTab === "properties" && (
           <>
             <div className="section-heading"><span>Selected object</span></div>
             {!selected ? (
@@ -153,14 +151,10 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
                 </div>
               </div>
             )}
-            <div className="section-heading"><span>Tool settings</span></div>
-            <div className="property-row"><span>Active tool</span><b>{selectedTool}</b></div>
-            <div className="property-row"><span>Snap to grid</span><b>5 mm</b></div>
-            <div className="property-row"><span>Coordinate units</span><b>{unit}</b></div>
           </>
         )}
 
-        {tab === "layers" && (
+        {inspectorTab === "layers" && (
           <>
             <div className="section-heading"><span>Document layers</span><small>{dieline?.layers.length ?? 0}</small></div>
             {!dieline ? <div className="empty-properties"><Layers3 size={25} /><strong>No vector layers yet</strong><p>Generate a dieline to create the professional layer stack.</p></div> : (
@@ -178,7 +172,7 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
           </>
         )}
 
-        {tab === "validate" && (
+        {inspectorTab === "validate" && (
           <>
             <div className="validation-summary">
               <div><strong>{summary.errors}</strong><span>Errors</span></div>
@@ -197,7 +191,7 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
           </>
         )}
 
-        {tab === "export" && (
+        {inspectorTab === "export" && (
           <>
             <div className="export-readiness">
               <div className={dieline && summary.errors === 0 ? "ready-icon ready" : "ready-icon"}>{dieline && summary.errors === 0 ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}</div>
@@ -225,14 +219,19 @@ export function PropertiesPanel({ inert = false }: { inert?: boolean }) {
               </div>
             )}
             <button className="primary-button export-primary" disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("svg")}><FileCode2 size={17} /> Export editable SVG</button>
-            <div className="export-grid">
+            <div className="section-heading"><span>Production formats</span></div>
+            <div className="export-grid export-grid-production">
               <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("pdf")}><FileText size={16} /><span><strong>PDF</strong><small>Vector print</small></span></button>
               <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("dxf")}><FileCode2 size={16} /><span><strong>DXF</strong><small>Layered CAD</small></span></button>
-              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("png")}><FileImage size={16} /><span><strong>PNG</strong><small>300 dpi</small></span></button>
-              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("jpg")}><FileImage size={16} /><span><strong>JPG</strong><small>300 dpi</small></span></button>
-              <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("json")}><FileCode2 size={16} /><span><strong>JSON</strong><small>Raw model</small></span></button>
-              <button disabled={exportBusy || readOnly} onClick={() => void performExport("project")}><FileArchive size={16} /><span><strong>Save project</strong><small>Choose .pdgproj location</small></span></button>
             </div>
+            <details className="advanced-disclosure export-more">
+              <summary>Other formats</summary>
+              <div className="export-grid">
+                <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("png")}><FileImage size={16} /><span><strong>PNG</strong><small>300 dpi</small></span></button>
+                <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("jpg")}><FileImage size={16} /><span><strong>JPG</strong><small>300 dpi</small></span></button>
+                <button disabled={!dieline || summary.errors > 0 || exportBusy || readOnly} onClick={() => void performExport("json")}><FileCode2 size={16} /><span><strong>JSON</strong><small>Raw model</small></span></button>
+              </div>
+            </details>
             <div className="compatibility-note"><Info size={14} /><span>{desktop ? "Every export opens the Windows Save dialog so you can choose the folder and filename." : "Exports use your browser download settings. Install the Windows app to choose a PC folder for every save."} SVG groups remain editable in major vector applications.</span></div>
           </>
         )}

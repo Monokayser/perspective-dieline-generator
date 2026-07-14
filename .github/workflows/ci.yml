@@ -25,6 +25,8 @@ jobs:
       - run: npm run test:coverage
       - run: npm run test:site
       - run: npm run desktop:web
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:e2e
 
   windows-bundle:
     runs-on: windows-latest
